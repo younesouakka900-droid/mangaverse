@@ -8,12 +8,12 @@
 <meta property="og:site_name" content="MangaVerse">
 <meta property="og:type" content="website">
 <meta id="og-title" property="og:title" content="MangaVerse — منصة المانجا العربية">
-<meta id="og-desc" property="og:description" content="منصة المانجا والإبداع العربي">
-<meta id="og-image" property="og:image" content="">
-<meta id="og-url" property="og:url" content="">
+<meta id="og-desc" property="og:description" content="عالم المانجا والروايات في مكان واحد! آلاف الأعمال من مبدعين عرب — اقرأ وانشر مجاناً">
+<meta id="og-image" property="og:image" content="https://raw.githubusercontent.com/younesouakka900-droid/%D8%B9%D8%A7%D9%84%D9%85-%D8%A7%D9%84%D9%85%D8%A7%D9%86%D8%AC%D8%A7/main/og-image.jpg">
+<meta id="og-url" property="og:url" content="https://mangaverse-one-lac.vercel.app">
 <meta name="twitter:card" content="summary_large_image">
 <meta id="tw-title" name="twitter:title" content="MangaVerse">
-<meta id="tw-image" name="twitter:image" content="">
+<meta id="tw-image" name="twitter:image" content="https://raw.githubusercontent.com/younesouakka900-droid/%D8%B9%D8%A7%D9%84%D9%85-%D8%A7%D9%84%D9%85%D8%A7%D9%86%D8%AC%D8%A7/main/og-image.jpg">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=Bebas+Neue&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
 
 <script type="module">
@@ -606,6 +606,12 @@ window.loadHeroSlider=async()=>{
     // جلب آخر 10 أعمال ثم ترتيب محلي حسب المشاهدات
     const q=query(collection(db,"works"),orderBy("createdAt","desc"),limit(10));
     const snap=await getDocs(q);
+    // ترتيب محلي من الأحدث للأقدم
+    const sortedDocs = snap.docs.sort((a,b)=>{
+      const ta = a.data().lastAt?.seconds || 0;
+      const tb = b.data().lastAt?.seconds || 0;
+      return tb - ta;
+    });
     if(snap.empty){wrap.innerHTML=defaultHeroSlide();return;}
     let slides=[];
     snap.forEach(d=>slides.push({id:d.id,...d.data()}));
@@ -1745,14 +1751,13 @@ async function loadChatList() {
     const snap = await getDocs(query(
       collection(db,"chats"),
       where("members","array-contains", CU.uid),
-      orderBy("lastAt","desc"),
-      limit(20)
+      limit(30)
     ));
     if(snap.empty){
       G("chat-list-body").innerHTML = '<div class="empty-state">💬 لا توجد محادثات بعد<br><small style="color:var(--mu);font-size:.8rem">ابدأ محادثة من صفحة أي مبدع</small></div>';
       return;
     }
-    const items = await Promise.all(snap.docs.map(async d => {
+    const items = await Promise.all(sortedDocs.map(async d => {
       const data = d.data();
       const otherUid = data.members.find(m => m !== CU.uid);
       const otherSnap = await getDoc(doc(db,"users",otherUid));
@@ -1944,6 +1949,7 @@ function _sendBrowserNotif(title, body, icon){
 // ─── NOTIFICATIONS — Real-time بـ onSnapshot ───
 window.startNotifListener = () => {
   if(!CU) return;
+  if(window._notifShowAll === undefined) window._notifShowAll = false;
   // إلغاء أي مستمع سابق
   if(window._notifUnsub){ window._notifUnsub(); window._notifUnsub=null; }
 
@@ -1996,7 +2002,8 @@ window.startNotifListener = () => {
       return;
     }
 
-    list.innerHTML = sorted.slice(0,20).map(d => {
+    const _notifLimit = window._notifShowAll ? sorted.length : 6;
+    const _notifHtml = sorted.slice(0, _notifLimit).map(d => {
       const n    = d.data();
       const time = n.createdAt?.toDate ? _timeAgo(n.createdAt.toDate()) : "";
       const icon = _notifIcon(n.msg||"");
@@ -2012,6 +2019,16 @@ window.startNotifListener = () => {
         ${!n.read?'<div class="notif-unread-dot"></div>':''}
       </div>`;
     }).join("");
+
+    // زر "عرض المزيد" إذا كان هناك أكثر من 6 إشعارات
+    const _showMoreBtn = (!window._notifShowAll && sorted.length > 6)
+      ? `<div onclick="window._notifShowAll=true;window.startNotifListener&&startNotifListener()" 
+          style="text-align:center;padding:.7rem;color:var(--red);font-size:.82rem;font-weight:700;cursor:pointer;border-top:1px solid var(--br);margin-top:.3rem">
+          ⬇️ عرض المزيد (${sorted.length - 6} إشعار)
+        </div>`
+      : "";
+
+    list.innerHTML = _notifHtml + _showMoreBtn;
 
   }, (err) => {
   });
@@ -2975,15 +2992,15 @@ body.light-mode .sb-section-label{color:rgba(0,0,0,.4);border-color:rgba(0,0,0,.
 
 /* ─── NAV ─── */
 nav{position:fixed;top:0;width:100%;z-index:900;height:60px;background:rgba(8,8,15,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.6rem;padding:0 .9rem;}
-.logo{font-family:'Bebas Neue';font-size:clamp(.9rem,3.8vw,1.7rem);letter-spacing:clamp(1px,1vw,3px);color:var(--w);cursor:pointer;display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.logo{font-family:'Bebas Neue';font-size:clamp(.75rem,3.2vw,1.7rem);letter-spacing:clamp(0px,.8vw,3px);color:var(--w);cursor:pointer;display:flex;align-items:center;gap:4px;flex-shrink:0;}
 .logo-text{white-space:nowrap;}
 .logo .hx{width:clamp(20px,5vw,28px);height:clamp(20px,5vw,28px);background:var(--red);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-size:clamp(.6rem,.8vw,.8rem);flex-shrink:0;}
 .logo span{color:var(--red);}
-.nav-search{flex:1;min-width:90px;max-width:420px;display:flex;background:rgba(255,255,255,.06);border:1px solid var(--br);border-radius:8px;overflow:hidden;}
+.nav-search{flex:1;min-width:60px;max-width:420px;display:flex;background:rgba(255,255,255,.06);border:1px solid var(--br);border-radius:8px;overflow:hidden;}
 .nav-search input{flex:1;background:transparent;border:none;color:var(--w);font-family:'Tajawal';font-size:.88rem;padding:.5rem .9rem;outline:none;}
 .nav-search button{background:var(--red);border:none;color:#fff;padding:.5rem .9rem;cursor:pointer;transition:background .2s;flex-shrink:0;}
 .nav-search button:hover{background:#ff1f35;}
-.nav-r{display:flex;align-items:center;gap:.5rem;flex-shrink:0;margin-right:auto;}
+.nav-r{display:flex;align-items:center;gap:.5rem;flex-shrink:0;overflow:visible;}
 .nbtn-special{background:transparent;border:1.5px solid var(--gold);color:var(--gold);font-family:'Tajawal';font-size:.82rem;font-weight:800;padding:.42rem .85rem;border-radius:6px;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;transition:all .25s;}
 .nbtn-special:hover{background:var(--gold);color:#000;}
 .nbtn{padding:.44rem .9rem;border-radius:6px;font-family:'Tajawal';font-size:.84rem;font-weight:700;cursor:pointer;transition:all .3s;border:none;white-space:nowrap;}
@@ -2993,10 +3010,10 @@ nav{position:fixed;top:0;width:100%;z-index:900;height:60px;background:rgba(8,8,
 .nbtn-p:hover{transform:translateY(-2px);}
 .nbtn-pub{background:linear-gradient(135deg,var(--red),#ff6b35);color:#fff;box-shadow:0 0 12px var(--rg);}
 .nbtn-pub:hover{transform:translateY(-2px);}
-.nav-av{width:36px;height:36px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;cursor:pointer;border:2px solid rgba(232,25,44,.5);flex-shrink:0;background-size:cover;background-position:center;transition:border-color .2s;}
+.nav-av{width:34px;height:34px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.95rem;cursor:pointer;border:2px solid rgba(232,25,44,.5);flex-shrink:0;background-size:cover;background-position:center;transition:border-color .2s;}
 .nav-av:hover{border-color:var(--gold);}
 .notif-wrap{position:relative;cursor:pointer;}
-.notif-bell{font-size:1.15rem;padding:.3rem;}
+.notif-bell{font-size:1.05rem;padding:.2rem;}
 .notif-badge{position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;border-radius:50%;min-width:18px;height:18px;font-size:.6rem;font-weight:800;display:none;align-items:center;justify-content:center;border:2px solid var(--ink);padding:0 3px;}
 .notif-drop{position:fixed;top:58px;right:8px;width:calc(100vw - 16px);max-width:340px;background:var(--s1);border:1px solid var(--br);border-radius:14px;padding:.4rem;box-shadow:0 24px 60px rgba(0,0,0,.8);z-index:99999;display:none;max-height:70vh;overflow-y:auto;}
 .notif-drop-header{display:flex;align-items:center;justify-content:space-between;padding:.5rem .7rem .4rem;border-bottom:1px solid var(--br);margin-bottom:.3rem;}
@@ -3015,16 +3032,23 @@ nav{position:fixed;top:0;width:100%;z-index:900;height:60px;background:rgba(8,8,
 .notif-empty{text-align:center;color:var(--mu);padding:1.5rem;font-size:.85rem;}
 
 /* RESPONSIVE NAV */
+@media(max-width:480px){
+  .nav-search{min-width:70px;max-width:200px;}
+  .nav-search input{font-size:.78rem;padding:.4rem .5rem;}
+}
 @media(max-width:420px){
   .logo-text{font-size:clamp(.7rem,3vw,1rem);}
-  nav{gap:.4rem;padding:0 .7rem;}
-  .nav-r{gap:.35rem;}
-  .nbtn-special{font-size:.72rem;padding:.35rem .55rem;letter-spacing:0;}
-  .nbtn-pub{font-size:.76rem;padding:.35rem .6rem;}
+  nav{gap:.3rem;padding:0 .6rem;}
+  .nav-r{gap:.25rem;}
+  .nbtn-pub{font-size:.74rem;padding:.32rem .55rem;}
+  /* إخفاء تخصيص الألوان في الجوال لتوفير مساحة */
+  #nav-customize-btn{display:none!important;}
 }
-@media(max-width:340px){
+@media(max-width:360px){
   .logo-text{display:none;}
   .logo{gap:0;}
+  /* إخفاء زر الوضع الليلي أيضاً في الشاشات الصغيرة جداً */
+  #nav-theme-btn{display:none!important;}
 }
 /* PAGES */
 .page{display:none;padding-top:60px;min-height:100vh;}
@@ -3352,6 +3376,8 @@ footer a:hover{text-decoration:underline;}
   .stats-row{grid-template-columns:1fr 1fr;}
 }
 </style>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/younesouakka900-droid/%D8%B9%D8%A7%D9%84%D9%85-%D8%A7%D9%84%D9%85%D8%A7%D9%86%D8%AC%D8%A7/main/favicon.png">
+<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/younesouakka900-droid/%D8%B9%D8%A7%D9%84%D9%85-%D8%A7%D9%84%D9%85%D8%A7%D9%86%D8%AC%D8%A7/main/favicon.png">
 </head>
 <body>
 
@@ -3895,6 +3921,7 @@ footer a:hover{text-decoration:underline;}
     <div class="sb-section-label">حسابي</div>
     <button class="sb-btn sb-btn-primary" onclick="closeSidebar();openModal('m-publish')">📤 نشر عمل جديد</button>
     <button class="sb-btn sb-btn-outline" onclick="closeSidebar();openEditProf()">✏️ تعديل الملف الشخصي</button>
+    <button class="sb-btn sb-btn-outline" onclick="closeSidebar();openModal('m-customize')">🎨 تخصيص الواجهة</button>
     <button class="sb-btn sb-btn-outline" id="push-toggle-btn" onclick="window._pushEnabled?disablePush():requestPushPermission()">🔔 تفعيل إشعارات الجوال</button>
     <button class="sb-btn sb-btn-danger" onclick="closeSidebar();doLogout()">🚪 تسجيل الخروج</button>
     <button id="btn-delete-account" onclick="closeSidebar();deleteAccount()" style="width:100%;background:transparent;border:1px solid rgba(232,25,44,.3);color:rgba(232,25,44,.6);font-family:'Tajawal';font-size:.82rem;padding:.6rem;border-radius:10px;cursor:pointer;margin-top:.3rem;transition:all .2s" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='rgba(232,25,44,.3)';this.style.color='rgba(232,25,44,.6)'">🗑 حذف الحساب نهائياً</button>
@@ -3912,8 +3939,8 @@ footer a:hover{text-decoration:underline;}
   <div class="nav-r">
 
     <button class="nbtn nbtn-pub" id="nav-pub-btn" onclick="openModal('m-publish')" style="display:none">📤 نشر</button>
-    <button class="theme-btn" id="theme-toggle-btn" onclick="window.toggleTheme()" title="تبديل الوضع">🌙</button>
-    <button class="theme-btn" onclick="openModal('m-customize')" title="تخصيص الواجهة" style="font-size:1rem">🎨</button>
+    <button class="theme-btn" id="nav-theme-btn" onclick="window.toggleTheme()" title="تبديل الوضع">🌙</button>
+    <button class="theme-btn" id="nav-customize-btn" onclick="openModal('m-customize')" title="تخصيص الواجهة" style="font-size:1rem">🎨</button>
     <div class="notif-wrap" id="nav-chat-wrap" style="display:none;position:relative;cursor:pointer" onclick="openChat()">
       <div class="notif-bell" title="الرسائل" style="font-size:1.15rem">💬</div>
       <div class="notif-badge" id="chat-badge" style="display:none">0</div>
@@ -4418,7 +4445,20 @@ async function handleRoute(){
     await new Promise(r=>setTimeout(r,600));
     window.openPublicProfile&&openPublicProfile(uid);
   } else if(hash==='#/profile'){
-    showPage('profile');
+    // انتظر Auth قبل عرض الصفحة الشخصية
+    if(window.CU){
+      showPage('profile');
+    } else {
+      // انتظر حتى يكون Auth جاهزاً
+      const waitAuth = setInterval(()=>{
+        if(window.CU !== undefined){
+          clearInterval(waitAuth);
+          if(window.CU) showPage('profile');
+          else showPage('home');
+        }
+      }, 200);
+      setTimeout(()=>clearInterval(waitAuth), 5000);
+    }
   } else if(hash==='#/library'){
     showPage('library');
   } else {
