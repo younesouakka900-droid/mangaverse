@@ -2683,12 +2683,12 @@ window.resetCustomize = () => {
 
 // ── تحديث إطار الصورة الشخصية حسب الرتبة ──
 function updateAvatarRing(pts){
-  const badge = getBadge(pts);
+  const p = parseInt(pts) || 0;
+  const badge = getBadge(p);
   const ring = G("p-av-ring");
   if(!ring) return;
-  // إزالة كل الكلاسات القديمة
-  ring.classList.remove("ring-new","ring-promising","ring-active","ring-elite","ring-legend");
-  ring.classList.add("ring-" + badge.id);
+  // إزالة كل الكلاسات القديمة بشكل مضمون
+  ring.className = "p-av-ring ring-" + badge.id;
   // تحديث شارة الـ badge الصغيرة
   const avBadge = G("av-badge-icon");
   if(avBadge) avBadge.textContent = badge.icon;
