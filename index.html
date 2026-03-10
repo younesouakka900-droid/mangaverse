@@ -114,8 +114,9 @@ onAuthStateChanged(auth, async user=>{
     // ✅ إعادة ضبط القفل دائماً عند تغيير الحساب
     window._openingWork = false;
     window._openingWorkTs = 0;
-    // ✅ أعد تحميل البطاقات دائماً عند تسجيل الدخول لضمان ظهور زر الحذف/التعديل الصحيح
-    loadWorks(); loadHeroSlider(); loadTrending(); loadPlatformStats();
+    // ✅ أعد تحميل البطاقات عند تسجيل الدخول لضمان ظهور زر الحذف/التعديل الصحيح
+    // نستخدم setTimeout لتجنب التعارض مع التحميل الأول
+    setTimeout(()=>{ loadWorks(); loadHeroSlider(); loadTrending(); }, 500);
     if(window._curPage==="profile") loadProfile();
     if(window._curPage==="library") loadLibrary();
   } else {
@@ -497,7 +498,7 @@ window.loadTrending = async () => {
 // ─── LOAD WORKS مع Pagination ───
 window._lastDoc    = null;
 window._filterGenre = "all";
-window._filterType  = "مانجا";   // فلتر النوع (التبويبات) — مانجا افتراضياً
+window._filterType  = "all";   // فلتر النوع — يعرض الكل عند التحميل
 
 window.setTypeTab = (btn, type) => {
   // تحديث الأزرار
@@ -2311,9 +2312,43 @@ window.loadProfile=async()=>{
   } catch(e){
   }
   G("p-works-count").textContent = allWorks.length;
+
+  // ── تبويبات الأعمال في الصفحة الشخصية ──
+  const profileTypeTabs = G("p-works-type-tabs");
+  if(profileTypeTabs){
+    profileTypeTabs.querySelectorAll(".ptab").forEach(btn => {
+      btn.onclick = () => {
+        profileTypeTabs.querySelectorAll(".ptab").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        const type = btn.dataset.type;
+        const filtered = type === "all" ? allWorks : allWorks.filter(w => w.type === type);
+        G("p-works-grid").innerHTML = filtered.length === 0
+          ? '<div class="empty-state">لا توجد أعمال من هذا النوع 📭</div>'
+          : filtered.map(w=>workCard(w)).join("");
+      };
+    });
+  }
+
+  // عرض الأعمال الكاملة افتراضياً
   G("p-works-grid").innerHTML = allWorks.length === 0
     ? '<div class="empty-state">لم تنشر أي عمل بعد 📭</div>'
     : allWorks.map(w=>workCard(w)).join("");
+
+  // إعادة حساب النقاط من الأعمال الفعلية
+  const realTotalViews = allWorks.reduce((s,w)=>s+(w.views||0),0);
+  const realTotalLikes = allWorks.reduce((s,w)=>s+(w.likes||0),0);
+  const realData = {
+    ...d,
+    worksCount: allWorks.length,
+    totalViews: realTotalViews,
+    totalLikes: realTotalLikes,
+    followers: d.followers || []
+  };
+  const realPts = calcPoints(realData);
+  updateAvatarRing(realPts);
+  if(G("p-badge-display")) G("p-badge-display").innerHTML = badgeHTML(realPts, "lg");
+  if(G("p-points-count")) G("p-points-count").textContent = realPts.toLocaleString("ar");
+  if(G("p-stats-points")) G("p-stats-points").textContent = realPts.toLocaleString("ar");
 
   // أفضل الأعمال (ترتيب حسب المشاهدات)
   const topSec = G("p-top-works-sec");
@@ -2556,7 +2591,10 @@ window.addEventListener("load",()=>{
   if(localStorage.getItem("mv_push")==="1" && Notification.permission==="granted"){
     window._pushEnabled = true;
   }
-  loadWorks(); loadHeroSlider(); loadTrending(); loadPlatformStats();
+  // ✅ تحميل فوري بدون انتظار Auth
+  loadWorks(); loadHeroSlider(); loadTrending();
+  // تأخير loadPlatformStats لتجنب التعارض
+  setTimeout(()=>{ window.loadPlatformStats && loadPlatformStats(); }, 4000);
 });
 
 // ─── تخصيص الواجهة ───
@@ -4088,13 +4126,13 @@ footer a:hover{text-decoration:underline;}
 
       <!-- تبويبات النوع -->
       <div class="type-tabs" id="type-tabs" dir="rtl">
-        <button class="ttab active" data-type="مانجا" onclick="setTypeTab(this,'مانجا')">⚔️ مانجا</button>
+        <button class="ttab" data-type="مانجا" onclick="setTypeTab(this,'مانجا')">⚔️ مانجا</button>
         <button class="ttab" data-type="ويبتون" onclick="setTypeTab(this,'ويبتون')">📱 ويبتون</button>
         <button class="ttab" data-type="رواية مصورة" onclick="setTypeTab(this,'رواية مصورة')">🎨 رواية مصورة</button>
         <button class="ttab" data-type="رواية" onclick="setTypeTab(this,'رواية')">📖 رواية</button>
         <button class="ttab" data-type="كتاب" onclick="setTypeTab(this,'كتاب')">📕 كتاب</button>
         <button class="ttab" data-type="مجلة" onclick="setTypeTab(this,'مجلة')">📰 مجلة</button>
-        <button class="ttab" data-type="all" onclick="setTypeTab(this,'all')">📚 الكل</button>
+        <button class="ttab active" data-type="all" onclick="setTypeTab(this,'all')">📚 الكل</button>
       </div>
 
       <div class="works-grid" id="works-grid">
@@ -4233,6 +4271,16 @@ footer a:hover{text-decoration:underline;}
 
     <div style="margin-top:2rem">
       <span class="stag">أعمالي</span>
+      <!-- تبويبات النوع في الصفحة الشخصية -->
+      <div class="type-tabs" id="p-works-type-tabs" dir="rtl" style="margin-top:.8rem">
+        <button class="ptab ttab active" data-type="all">📚 الكل</button>
+        <button class="ptab ttab" data-type="مانجا">⚔️ مانجا</button>
+        <button class="ptab ttab" data-type="ويبتون">📱 ويبتون</button>
+        <button class="ptab ttab" data-type="رواية مصورة">🎨 رواية مصورة</button>
+        <button class="ptab ttab" data-type="رواية">📖 رواية</button>
+        <button class="ptab ttab" data-type="كتاب">📕 كتاب</button>
+        <button class="ptab ttab" data-type="مجلة">📰 مجلة</button>
+      </div>
       <div class="works-grid" id="p-works-grid" style="margin-top:1rem">
         <div class="empty-state">⏳ جاري التحميل...</div>
       </div>
