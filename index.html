@@ -2312,7 +2312,7 @@ window.loadProfile=async()=>{
   const nextPts = nextBadge ? nextBadge.pts : pts;
   const pct = nextBadge ? Math.min(100, Math.round(((pts - prevPts) / (nextPts - prevPts)) * 100)) : 100;
   if(statPoints) statPoints.textContent = pts.toLocaleString("ar");
-  updateAvatarRing(pts);
+  // الإطار يُحدَّث لاحقاً بعد حساب النقاط الحقيقية من الأعمال
   const bar = G("p-points-bar");
   if(bar) setTimeout(()=>{ bar.style.width = pct + "%"; bar.style.background = `linear-gradient(90deg,${badge.color},${nextBadge?.color||badge.color})`; }, 300);
   const lbl = G("p-next-badge-lbl");
@@ -2362,10 +2362,14 @@ window.loadProfile=async()=>{
     followers: d.followers || []
   };
   const realPts = calcPoints(realData);
-  updateAvatarRing(realPts);
-  if(G("p-badge-display")) G("p-badge-display").innerHTML = badgeHTML(realPts, "lg");
-  if(G("p-points-count")) G("p-points-count").textContent = realPts.toLocaleString("ar");
-  if(G("p-stats-points")) G("p-stats-points").textContent = realPts.toLocaleString("ar");
+  // تأخير بسيط لضمان تطبيق الإطار بعد رسم الصفحة
+  setTimeout(()=>{
+    updateAvatarRing(realPts);
+    if(G("p-badge-display")) G("p-badge-display").innerHTML = badgeHTML(realPts, "lg");
+    if(G("p-points-count")) G("p-points-count").textContent = realPts.toLocaleString("ar");
+    if(G("p-stats-points")) G("p-stats-points").textContent = realPts.toLocaleString("ar");
+    if(G("av-badge-icon")) G("av-badge-icon").textContent = getBadge(realPts).icon;
+  }, 100);
 
   // أفضل الأعمال (ترتيب حسب المشاهدات)
   const topSec = G("p-top-works-sec");
@@ -3148,7 +3152,7 @@ section{padding:4.5rem 2rem;}
 .cover-edit-btn{position:absolute;bottom:1rem;left:1rem;background:rgba(8,8,15,.88);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px);color:#fff;border-radius:8px;padding:.5rem 1rem;font-family:'Tajawal';font-size:.83rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:.5rem;transition:all .3s;opacity:0;}
 .p-cover:hover .cover-edit-btn{opacity:1;}
 .cover-edit-btn:hover{background:var(--red);border-color:var(--red);}
-.p-head{display:flex;align-items:flex-end;gap:1.5rem;margin-top:-62px;padding-bottom:1.5rem;border-bottom:1px solid var(--br);flex-wrap:wrap;}
+.p-head{display:flex;align-items:flex-end;gap:1.5rem;margin-top:-62px;padding-bottom:1.5rem;border-bottom:1px solid var(--br);flex-wrap:wrap;position:relative;z-index:2;background:var(--ink);padding-top:.5rem;}
 .p-av-wrap{position:relative;flex-shrink:0;cursor:pointer;}
 /* ── إطارات الرتب — الإطار يتحرك، الصورة ثابتة بلونها الطبيعي ── */
 .p-av-ring{width:128px;height:128px;border-radius:50%;padding:3px;position:relative;}
@@ -3941,10 +3945,8 @@ footer a:hover{text-decoration:underline;}
     <button class="nbtn nbtn-pub" id="nav-pub-btn" onclick="openModal('m-publish')" style="display:none">📤 نشر</button>
     <button class="theme-btn" id="nav-theme-btn" onclick="window.toggleTheme()" title="تبديل الوضع">🌙</button>
     <button class="theme-btn" id="nav-customize-btn" onclick="openModal('m-customize')" title="تخصيص الواجهة" style="font-size:1rem">🎨</button>
-    <div class="notif-wrap" id="nav-chat-wrap" style="display:none;position:relative;cursor:pointer" onclick="openChat()">
-      <div class="notif-bell" title="الرسائل" style="font-size:1.15rem">💬</div>
-      <div class="notif-badge" id="chat-badge" style="display:none">0</div>
-    </div>
+    <!-- الرسائل متاحة في الصفحة الشخصية فقط -->
+    <div id="nav-chat-wrap" style="display:none"></div>
     <div class="notif-wrap" id="nav-notif-wrap" style="display:none" onclick="window._toggleNotif(event)">
       <div class="notif-bell" title="الإشعارات">🔔</div>
       <div class="notif-badge" id="notif-badge">0</div>
