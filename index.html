@@ -3193,10 +3193,10 @@ section{padding:4.5rem 2rem;}
 .cover-edit-btn{position:absolute;bottom:1rem;left:1rem;background:rgba(8,8,15,.88);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px);color:#fff;border-radius:8px;padding:.5rem 1rem;font-family:'Tajawal';font-size:.83rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:.5rem;transition:all .3s;opacity:0;}
 .p-cover:hover .cover-edit-btn{opacity:1;}
 .cover-edit-btn:hover{background:var(--red);border-color:var(--red);}
-.p-head{display:flex;align-items:flex-end;gap:1.5rem;margin-top:-62px;padding-bottom:1.5rem;border-bottom:1px solid var(--br);flex-wrap:wrap;position:relative;z-index:2;background:var(--ink);padding-top:.5rem;}
+.p-head{display:flex;align-items:flex-end;gap:1.5rem;margin-top:-68px;padding-bottom:1.5rem;border-bottom:1px solid var(--br);flex-wrap:wrap;position:relative;z-index:2;background:var(--ink);padding-top:.5rem;}
 .p-av-wrap{position:relative;flex-shrink:0;cursor:pointer;}
 /* ── إطارات الرتب — الإطار يتحرك، الصورة ثابتة بلونها الطبيعي ── */
-.p-av-ring{width:128px;height:128px;border-radius:50%;padding:4px;position:relative;display:flex;align-items:center;justify-content:center;}
+.p-av-ring{width:136px;height:136px;border-radius:50%;padding:5px;position:relative;display:flex;align-items:center;justify-content:center;box-sizing:border-box;}
 
 /* 🌱 مبدع جديد */
 .p-av-ring.ring-new{
@@ -3281,7 +3281,7 @@ section{padding:4.5rem 2rem;}
   0%,100%{box-shadow:0 0 30px rgba(255,215,0,.8),0 0 60px rgba(255,165,0,.4);}
   50%{box-shadow:0 0 50px rgba(255,215,0,1),0 0 80px rgba(255,165,0,.7),0 0 100px rgba(255,200,0,.3);}
 }
-.p-av-inner{width:calc(100% - 6px);height:calc(100% - 6px);border-radius:50%;background:var(--s1);border:2px solid var(--ink);overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative;margin:3px;}
+.p-av-inner{width:calc(100% - 8px);height:calc(100% - 8px);border-radius:50%;background:var(--s1);border:3px solid var(--ink);overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative;margin:4px;}
 /* الصورة الشخصية تعكس دوران الإطار لتبقى بلونها الطبيعي */
 .p-av-ring.ring-new .p-av-inner,
 .p-av-ring.ring-reader .p-av-inner,
@@ -3470,6 +3470,26 @@ footer a:hover{text-decoration:underline;}
   .hero-slider-wrap{height:420px;}
   .stats-row{grid-template-columns:1fr 1fr;}
 }
+
+/* ── فصل واضح بين الصورة والإطار ── */
+.p-av-ring::before{
+  content:"";
+  position:absolute;
+  inset:-3px;
+  border-radius:50%;
+  z-index:-1;
+}
+.p-av-ring.ring-warrior::before{ box-shadow:0 0 0 3px #FF6B35; }
+.p-av-ring.ring-elite::before{   box-shadow:0 0 0 3px #00D4FF; }
+.p-av-ring.ring-hero::before{    box-shadow:0 0 0 3px #9B30FF; }
+.p-av-ring.ring-legend::before{  box-shadow:0 0 0 3px #FF6B00; }
+.p-av-ring.ring-immortal::before{box-shadow:0 0 0 3px #FF4500; }
+.p-av-ring.ring-myth::before{    box-shadow:0 0 0 3px #FFD700; }
+.p-av-ring.ring-god::before{     box-shadow:0 0 0 3px #FF0080; }
+.p-av-ring.ring-student::before{ box-shadow:0 0 0 3px #00BCD4; }
+.p-av-ring.ring-reader::before{  box-shadow:0 0 0 3px #C0C0C0; }
+.p-av-ring.ring-new::before{     box-shadow:0 0 0 3px #4CAF50; }
+
 </style>
 <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/younesouakka900-droid/%D8%B9%D8%A7%D9%84%D9%85-%D8%A7%D9%84%D9%85%D8%A7%D9%86%D8%AC%D8%A7/main/favicon.png">
 <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/younesouakka900-droid/%D8%B9%D8%A7%D9%84%D9%85-%D8%A7%D9%84%D9%85%D8%A7%D9%86%D8%AC%D8%A7/main/favicon.png">
