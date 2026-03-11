@@ -56,6 +56,11 @@ async function cloudinaryUpload(file) {
   fd.append("upload_preset", CDN_PRESET);
   const isRaw = file.type === "application/pdf";
   const resType = isRaw ? "raw" : "image";
+  // جعل الملف عاماً — يحل مشكلة 401
+  if(isRaw) {
+    fd.append("access_mode", "public");
+    fd.append("type", "upload");
+  }
   const url = `https://api.cloudinary.com/v1_1/${CDN_CLOUD}/${resType}/upload`;
   const r = await fetch(url, { method: "POST", body: fd });
   const j = await r.json();
@@ -1178,23 +1183,38 @@ window.openPdfViewer = async (src, title, w) => {
   G("pdf-viewer-title").textContent = title || "";
   G("pdf-viewer-page").style.display = "flex";
   document.body.style.overflow = "hidden";
-  G("pdf-download-btn").onclick = () => window.open(src, "_blank");
+  // تحويل الرابط قبل الاستخدام
+  const _fixedSrc = src.includes("cloudinary.com") 
+    ? src.replace("/authenticated/","/upload/").replace("/private/","/upload/")
+    : src;
+  G("pdf-download-btn").onclick = () => window.open(_fixedSrc, "_blank");
 
-  // ── تحديد طريقة العرض الأنسب ──
-  const isCloudinary = src.includes("cloudinary.com") || src.includes("res.cloudinary");
-  const isGdrive     = src.includes("drive.google.com") || src.includes("docs.google.com");
-  const isBase64     = src.startsWith("data:");
+  // ── تحويل رابط Cloudinary المحمي إلى عام ──
+  let pdfSrc = src;
+  if(src.includes("cloudinary.com")){
+    // تحويل authenticated → upload لجعل الملف عاماً
+    pdfSrc = src.replace("/authenticated/", "/upload/")
+               .replace("/private/", "/upload/");
+  }
+  const isCloudinary = pdfSrc.includes("cloudinary.com");
+  const isGdrive     = pdfSrc.includes("drive.google.com") || pdfSrc.includes("docs.google.com");
+  const isBase64     = pdfSrc.startsWith("data:");
 
-  // للروابط الخارجية (Cloudinary/GDrive) — استخدم Google Docs Viewer
+  // دالة بناء رابط Google Viewer
+  const buildGViewer = (url) => `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+
+  // للروابط الخارجية — Google Docs Viewer أولاً
   if((isCloudinary || isGdrive) && !isBase64){
-    const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(src)}&embedded=true`;
+    const viewerUrl = buildGViewer(pdfSrc);
     G("pdf-canvas-wrap").innerHTML = `
+      <div style="text-align:center;padding:1rem 0 .5rem;color:var(--mu);font-size:.85rem">⏳ جاري تحميل PDF عبر المشاهد...</div>
       <iframe src="${viewerUrl}"
-        style="width:100%;height:80vh;border:none;border-radius:8px;"
-        allowfullscreen loading="lazy">
+        style="width:100%;height:75vh;border:none;border-radius:8px;background:#fff;"
+        allowfullscreen>
       </iframe>
-      <div style="text-align:center;margin-top:.5rem;font-size:.8rem;color:var(--mu)">
-        إذا لم يظهر PDF، اضغط <a href="${src}" target="_blank" style="color:var(--red)">هنا للفتح المباشر</a>
+      <div style="text-align:center;margin-top:.5rem;font-size:.82rem;color:var(--mu)">
+        لم يظهر؟ 
+        <a href="${pdfSrc}" target="_blank" style="color:var(--red);font-weight:700">📥 افتح مباشرة</a>
       </div>`;
     return;
   }
@@ -2862,12 +2882,27 @@ body.light-mode .trending-wrap{background:var(--ink);}
 body.light-mode .creator-section{background:var(--ink);}
 body.light-mode .genre-section{background:var(--ink);}
 /* إصلاح شامل للعناصر التي تبقى داكنة */
-body.light-mode { background:var(--ink); color:var(--w); }
-body.light-mode #page-home { background:var(--ink); }
-body.light-mode .discover-section { background:var(--ink); }
-body.light-mode .manifesto { background:linear-gradient(135deg,rgba(232,25,44,.08),rgba(232,25,44,.02)); border-color:rgba(0,0,0,.08); }
-body.light-mode #stats-sec { background:var(--s2); border-color:rgba(0,0,0,.08); }
-body.light-mode .stat-val { color:var(--red); }
+/* الوضع الفاتح — إصلاح شامل */
+body.light-mode,
+body.light-mode #page-home,
+body.light-mode .page,
+body.light-mode .cont { 
+  background:#f0f2f5 !important; 
+  color:#1a1a2e !important; 
+}
+body.light-mode .manifesto { 
+  background:linear-gradient(135deg,rgba(232,25,44,.06),rgba(232,25,44,.01)) !important;
+  border-color:rgba(0,0,0,.08) !important;
+}
+body.light-mode .manifesto-text { color:rgba(26,26,46,.65) !important; }
+body.light-mode #stats-sec { 
+  background:#e8eaed !important; 
+  border-color:rgba(0,0,0,.08) !important; 
+}
+body.light-mode .trending-wrap { background:#f0f2f5 !important; }
+body.light-mode .trending-title,
+body.light-mode .section-title { color:#1a1a2e !important; }
+body.light-mode .hero-slider-wrap { background:#e8eaed !important; }
 body.light-mode .stat-card{background:#fff;border-color:rgba(0,0,0,.08);}
 body.light-mode .p-av-ring.ring-new{opacity:.85;}
 body.light-mode .notif-drop{background:#fff;border-color:rgba(0,0,0,.1);}
