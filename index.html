@@ -190,7 +190,7 @@ function clearProfileUI(){
 window.doRegister=async()=>{
   const name=V("r-name"),email=V("r-email"),pass=V("r-pass");
   if(!name||!email||!pass) return toast("⚠️ ملء جميع الحقول مطلوب","w");
-  if(!document.getElementById('reg-terms-cb')?.checked) return toast("⚠️ يجب الموافقة على شروط الاستخدام أولاً","w");
+  if(!document.getElementById("reg-terms-cb")?.checked) return toast("⚠️ يجب الموافقة على شروط الاستخدام أولاً","w");
   if(pass.length<6) return toast("⚠️ كلمة المرور 6 أحرف على الأقل","w");
   setBL("btn-reg",true);
   try{
@@ -4188,6 +4188,53 @@ footer a:hover{text-decoration:underline;}
 .p-av-ring.ring-new::before{     box-shadow:0 0 0 3px #4CAF50; }
 
 
+/* ══ ANIME PAGE ══ */
+.anime-hero{background:linear-gradient(135deg,#0a001a 0%,#1a0030 40%,#0d0d1a 100%);border-bottom:1px solid rgba(155,48,255,.2);padding:3rem 0 2rem;text-align:center;position:relative;overflow:hidden;}
+.anime-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(155,48,255,.15) 0%,transparent 70%);pointer-events:none;}
+.anime-hero h1{font-family:'Bebas Neue',sans-serif;font-size:3.5rem;letter-spacing:3px;background:linear-gradient(135deg,#9B30FF,#FF00FF,#00D4FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.3rem;}
+.anime-hero p{color:rgba(255,255,255,.5);font-size:.95rem;}
+.anime-search-wrap{display:flex;gap:.6rem;max-width:500px;margin:1.5rem auto 0;padding:0 1rem;}
+.anime-search-wrap input{flex:1;background:rgba(255,255,255,.06);border:1.5px solid rgba(155,48,255,.3);border-radius:10px;color:#fff;font-family:'Tajawal';font-size:.95rem;padding:.75rem 1rem;outline:none;transition:border-color .3s;}
+.anime-search-wrap input:focus{border-color:#9B30FF;}
+.anime-search-wrap button{background:linear-gradient(135deg,#9B30FF,#6d00cc);border:none;color:#fff;border-radius:10px;padding:.75rem 1.3rem;font-family:'Tajawal';font-size:.9rem;font-weight:700;cursor:pointer;transition:opacity .2s;white-space:nowrap;}
+.anime-tabs{display:flex;gap:.5rem;padding:.5rem 1rem;overflow-x:auto;scrollbar-width:none;flex-wrap:wrap;justify-content:center;margin-top:1rem;}
+.anime-tabs::-webkit-scrollbar{display:none;}
+.atab{padding:.5rem 1.1rem;border-radius:20px;border:1.5px solid rgba(155,48,255,.25);background:transparent;color:rgba(255,255,255,.5);font-family:'Tajawal';font-size:.85rem;font-weight:700;cursor:pointer;transition:all .25s;white-space:nowrap;}
+.atab:hover{border-color:#9B30FF;color:#9B30FF;}
+.atab.active{background:linear-gradient(135deg,#9B30FF,#6d00cc);border-color:transparent;color:#fff;box-shadow:0 0 14px rgba(155,48,255,.4);}
+.anime-section{padding:2rem 0;}
+.anime-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1rem;}
+.anime-card{background:var(--s1);border:1px solid var(--br);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .25s;}
+.anime-card:hover{transform:translateY(-4px);border-color:rgba(155,48,255,.5);box-shadow:0 8px 25px rgba(155,48,255,.2);}
+.anime-card-img-wrap{position:relative;overflow:hidden;}
+.anime-card-img{width:100%;aspect-ratio:2/3;object-fit:cover;display:block;background:var(--s2);}
+.anime-card-score{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.8);color:var(--gold);font-size:.72rem;font-weight:800;padding:.22rem .55rem;border-radius:20px;}
+.anime-card-type{position:absolute;top:6px;left:6px;background:rgba(155,48,255,.85);color:#fff;font-size:.65rem;font-weight:700;padding:.2rem .5rem;border-radius:20px;}
+.anime-card-body{padding:.65rem .7rem;}
+.anime-card-title{font-size:.82rem;font-weight:800;line-height:1.35;margin-bottom:.3rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.anime-card-meta{font-size:.72rem;color:var(--mu);display:flex;gap:.4rem;flex-wrap:wrap;}
+.anime-load-more{display:block;margin:1.5rem auto 0;background:transparent;border:1.5px solid rgba(155,48,255,.4);color:#9B30FF;font-family:'Tajawal';font-size:.9rem;font-weight:700;padding:.7rem 2rem;border-radius:10px;cursor:pointer;transition:all .25s;}
+.anime-load-more:hover{background:rgba(155,48,255,.1);}
+.anime-skeleton{background:linear-gradient(90deg,var(--s1) 25%,rgba(255,255,255,.04) 50%,var(--s1) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:12px;aspect-ratio:2/3;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+#m-anime .md{max-width:680px;}
+.adm-cover{width:100%;height:220px;object-fit:cover;border-radius:10px;margin-bottom:1rem;}
+.adm-title{font-family:'Rajdhani',sans-serif;font-size:1.8rem;font-weight:800;margin-bottom:.3rem;}
+.adm-title-en{font-size:.85rem;color:var(--mu);margin-bottom:.8rem;}
+.adm-badges{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.8rem;}
+.adm-badge{padding:.25rem .7rem;border-radius:20px;font-size:.75rem;font-weight:700;}
+.adm-badge-purple{background:rgba(155,48,255,.15);border:1px solid rgba(155,48,255,.4);color:#b06eff;}
+.adm-badge-gold{background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.35);color:var(--gold);}
+.adm-badge-green{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#4ade80;}
+.adm-badge-red{background:rgba(232,25,44,.1);border:1px solid rgba(232,25,44,.3);color:var(--red);}
+.adm-synopsis{color:rgba(255,255,255,.65);font-size:.88rem;line-height:1.8;margin-bottom:1rem;max-height:120px;overflow-y:auto;}
+.adm-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:1rem;}
+.adm-stat{background:rgba(255,255,255,.03);border:1px solid var(--br);border-radius:8px;padding:.6rem;text-align:center;}
+.adm-stat .n{font-size:1.1rem;font-weight:900;color:#9B30FF;}
+.adm-stat .l{font-size:.7rem;color:var(--mu);margin-top:.1rem;}
+.adm-genres{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem;}
+.adm-genre-tag{background:rgba(255,255,255,.05);border:1px solid var(--br);border-radius:20px;padding:.22rem .6rem;font-size:.73rem;color:var(--mu);}
+
 /* ══ TERMS MODAL ══ */
 #m-terms .md{max-width:720px;max-height:92vh;padding:0;overflow:hidden;display:flex;flex-direction:column;}
 .terms-modal-head{padding:1.4rem 1.8rem;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
@@ -4216,13 +4263,12 @@ footer a:hover{text-decoration:underline;}
 .terms-accept-btn{background:var(--red);color:#fff;border:none;border-radius:10px;padding:.7rem 1.6rem;font-family:'Tajawal';font-size:.9rem;font-weight:800;cursor:pointer;transition:all .2s;box-shadow:0 0 16px rgba(232,25,44,.3);white-space:nowrap;}
 .terms-accept-btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none;}
 .terms-accept-btn:not(:disabled):hover{transform:translateY(-2px);}
-/* checkbox في نموذج التسجيل */
 .reg-terms-row{display:flex;align-items:flex-start;gap:.6rem;margin-bottom:1rem;padding:.75rem 1rem;background:rgba(255,255,255,.03);border:1px solid var(--br);border-radius:10px;cursor:pointer;transition:border-color .25s;}
 .reg-terms-row:hover{border-color:rgba(232,25,44,.3);}
 .reg-terms-row input{accent-color:var(--red);width:16px;height:16px;flex-shrink:0;margin-top:2px;cursor:pointer;}
 .reg-terms-row label{font-size:.83rem;color:var(--mu);cursor:pointer;line-height:1.6;}
 .reg-terms-row label a{color:var(--red);font-weight:700;text-decoration:none;}
-.reg-terms-row label a:hover{text-decoration:underline;}
+
 </style>
 <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/younesouakka900-droid/%D8%B9%D8%A7%D9%84%D9%85-%D8%A7%D9%84%D9%85%D8%A7%D9%86%D8%AC%D8%A7/main/favicon.png">
 <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/younesouakka900-droid/%D8%B9%D8%A7%D9%84%D9%85-%D8%A7%D9%84%D9%85%D8%A7%D9%86%D8%AC%D8%A7/main/favicon.png">
@@ -4312,7 +4358,7 @@ footer a:hover{text-decoration:underline;}
       <div class="reg-terms-row" onclick="document.getElementById('reg-terms-cb').click();event.stopPropagation()">
         <input type="checkbox" id="reg-terms-cb" onclick="event.stopPropagation()">
         <label for="reg-terms-cb" onclick="event.stopPropagation()">
-          أوافق على <a onclick="event.preventDefault();event.stopPropagation();openTermsModal()" href="#">شروط الاستخدام وسياسة حقوق الملكية</a> — بالنشر تتحمل المسؤولية القانونية الكاملة عن محتواك.
+          أوافق على <a onclick="event.preventDefault();event.stopPropagation();openTermsModal()" href="#">شروط الاستخدام وسياسة حقوق الملكية</a>
         </label>
       </div>
       <button class="msub" id="btn-reg" onclick="doRegister()">🚀 إنشاء الحساب</button>
@@ -4733,6 +4779,58 @@ footer a:hover{text-decoration:underline;}
 </div>
 
 
+<!-- ANIME PAGE -->
+<div class="page" id="page-anime">
+  <div class="anime-hero">
+    <div style="position:relative;z-index:1">
+      <h1>🎌 عالم الأنمي</h1>
+      <p>استكشف أفضل مسلسلات الأنمي — بيانات مباشرة من MyAnimeList</p>
+      <div class="anime-search-wrap">
+        <input id="anime-search-inp" type="text" placeholder="ابحث عن أنمي..." onkeydown="if(event.key==='Enter') animeSearch()">
+        <button onclick="animeSearch()">🔍 بحث</button>
+      </div>
+      <div class="anime-tabs">
+        <button class="atab active" onclick="animeTab(this,'top')">🏆 الأفضل تقييماً</button>
+        <button class="atab" onclick="animeTab(this,'airing')">📡 يُبث الآن</button>
+        <button class="atab" onclick="animeTab(this,'upcoming')">🗓 قادم قريباً</button>
+        <button class="atab" onclick="animeTab(this,'popular')">🔥 الأكثر شعبية</button>
+        <button class="atab" onclick="animeTab(this,'movie')">🎬 أفلام</button>
+        <button class="atab" onclick="animeTab(this,'ova')">💿 OVA</button>
+      </div>
+    </div>
+  </div>
+  <div class="anime-section">
+    <div class="cont">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;flex-wrap:wrap;gap:.5rem">
+        <div>
+          <span class="stag" style="display:inline-block;margin-bottom:.3rem">🎌 أنمي</span>
+          <h2 class="stitle" style="margin:0" id="anime-section-h">الأفضل تقييماً</h2>
+        </div>
+        <span id="anime-results-count" style="font-size:.82rem;color:var(--mu)"></span>
+      </div>
+      <div class="anime-grid" id="anime-grid">
+        <div class="anime-skeleton"></div><div class="anime-skeleton"></div>
+        <div class="anime-skeleton"></div><div class="anime-skeleton"></div>
+        <div class="anime-skeleton"></div><div class="anime-skeleton"></div>
+      </div>
+      <button class="anime-load-more" id="anime-load-more-btn" onclick="animeLoadMore()" style="display:none">تحميل المزيد ⬇</button>
+    </div>
+  </div>
+</div>
+
+<!-- ANIME DETAIL MODAL -->
+<div class="mo" id="m-anime">
+  <div class="md">
+    <div class="mh">
+      <h2>🎌 تفاصيل الأنمي</h2>
+      <button class="mclose" onclick="closeModal('m-anime')">✕</button>
+    </div>
+    <div id="anime-detail-body">
+      <div style="text-align:center;padding:2rem"><span class="spin" style="font-size:2rem">⏳</span></div>
+    </div>
+  </div>
+</div>
+
 <!-- TERMS MODAL -->
 <div class="mo" id="m-terms">
   <div class="md">
@@ -4740,13 +4838,10 @@ footer a:hover{text-decoration:underline;}
       <h2>📜 شروط الاستخدام وسياسة حقوق الملكية</h2>
       <button class="mclose" onclick="closeModal('m-terms')">✕</button>
     </div>
-
     <div class="terms-body">
       <p style="font-size:.82rem;color:var(--mu);margin-bottom:1.5rem;padding:.7rem 1rem;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px">
         📅 آخر تحديث: مارس 2026 &nbsp;|&nbsp; يرجى قراءة هذه الشروط بعناية قبل استخدام المنصة
       </p>
-
-      <!-- جدول المحتويات -->
       <div class="terms-toc">
         <h3>📋 محتويات الصفحة</h3>
         <ol>
@@ -4760,26 +4855,23 @@ footer a:hover{text-decoration:underline;}
           <li><a href="#ts8" onclick="document.getElementById('ts8').scrollIntoView({behavior:'smooth'});return false">التواصل معنا</a></li>
         </ol>
       </div>
-
       <div class="terms-section" id="ts1">
         <h2>📜 1. القبول بالشروط</h2>
         <p>باستخدامك لمنصة MangaVerse أو نشر أي محتوى عليها، فإنك توافق صراحةً على الالتزام بجميع الشروط والأحكام الواردة في هذه الصفحة.</p>
         <p>إذا كنت لا توافق على هذه الشروط، يرجى التوقف عن استخدام المنصة فوراً.</p>
         <div class="terms-gold"><p>⚠️ عند نشر أي عمل على المنصة، تقر صراحةً بأنك اطلعت على هذه الشروط ووافقت عليها بالكامل.</p></div>
       </div>
-
       <div class="terms-section" id="ts2">
         <h2>🔒 2. حقوق الملكية الفكرية</h2>
         <p>تحترم منصة MangaVerse حقوق الملكية الفكرية وتلتزم بجميع القوانين والاتفاقيات الدولية المتعلقة بها.</p>
         <ul>
           <li>يُسمح فقط بنشر <strong>الأعمال الأصلية</strong> التي أنت صاحبها أو تملك حق نشرها رسمياً.</li>
           <li>يُحظر نشر أي مانجا أو رواية أو محتوى مرئي محمي بحقوق طبع ونشر دون إذن صريح من أصحابها.</li>
-          <li>يشمل الحظر: المانجا اليابانية، المانهوا، المانهوا، والروايات التجارية المترجمة.</li>
+          <li>يشمل الحظر: المانجا اليابانية، المانهوا، والروايات التجارية المترجمة.</li>
           <li>الأعمال المشتقة (Fan Art, Doujinshi) مسموح بها <strong>شرط الإشارة الواضحة</strong> إلى المصدر الأصلي.</li>
         </ul>
-        <div class="terms-warn"><p><strong>تحذير:</strong> نشر محتوى محمي بحقوق ملكية دون إذن يُعرّضك للمسؤولية القانونية الكاملة بموجب قوانين حقوق النشر الدولية. المنصة غير مسؤولة عن أي تبعات قانونية تنجم عن ذلك.</p></div>
+        <div class="terms-warn"><p><strong>تحذير:</strong> نشر محتوى محمي بحقوق ملكية دون إذن يُعرّضك للمسؤولية القانونية الكاملة. المنصة غير مسؤولة عن أي تبعات قانونية.</p></div>
       </div>
-
       <div class="terms-section" id="ts3">
         <h2>🚫 3. المحتوى المحظور</h2>
         <p>يُمنع منعاً باتاً نشر أي من المحتويات التالية:</p>
@@ -4792,45 +4884,26 @@ footer a:hover{text-decoration:underline;}
           <li>🔗 الروابط الضارة أو محاولات الاحتيال أو التصيد الإلكتروني</li>
         </ul>
       </div>
-
       <div class="terms-section" id="ts4">
         <h2>👤 4. مسؤولية المستخدم</h2>
-        <p>أنت وحدك المسؤول عن:</p>
-        <ul>
-          <li>أي محتوى تنشره على المنصة بالكامل.</li>
-          <li>التأكد من امتلاكك الحقوق الكاملة لنشر أي عمل.</li>
-          <li>الحفاظ على سرية بيانات حسابك وكلمة المرور.</li>
-          <li>أي انتهاك لحقوق الملكية الفكرية ينجم عن محتواك.</li>
-        </ul>
+        <p>أنت وحدك المسؤول عن أي محتوى تنشره، والتأكد من امتلاكك الحقوق الكاملة لنشره، والحفاظ على سرية بيانات حسابك.</p>
         <div class="terms-gold"><p>💡 عند ضغطك على "نشر العمل الآن"، تعتبر موافقاً تلقائياً على تحمّل المسؤولية القانونية الكاملة عن ذلك المحتوى.</p></div>
       </div>
-
       <div class="terms-section" id="ts5">
         <h2>⚖️ 5. إخلاء مسؤولية المنصة</h2>
-        <p>منصة MangaVerse هي منصة تقنية تتيح للمستخدمين نشر أعمالهم الإبداعية، وبناءً على ذلك:</p>
         <ul>
           <li>المنصة <strong>لا تتحمل أي مسؤولية قانونية</strong> عن المحتوى الذي ينشره المستخدمون.</li>
-          <li>المنصة لا تضمن دقة أو صحة أي محتوى منشور.</li>
           <li>المنصة تحتفظ بالحق الكامل في حذف أي محتوى مخالف دون إشعار مسبق.</li>
           <li>المنصة تحتفظ بالحق في تعليق أو إلغاء أي حساب يثبت انتهاكه لهذه الشروط.</li>
         </ul>
-        <div class="terms-warn"><p><strong>مهم:</strong> أصحاب حقوق الملكية الفكرية الذين يجدون محتوى منتهكاً يمكنهم التواصل معنا مباشرة لحذفه فوراً.</p></div>
+        <div class="terms-warn"><p><strong>مهم:</strong> أصحاب حقوق الملكية الفكرية يمكنهم التواصل معنا مباشرة لحذف أي محتوى منتهك فوراً.</p></div>
       </div>
-
       <div class="terms-section" id="ts6">
         <h2>🚩 6. الإبلاغ عن المخالفات</h2>
-        <p>نحن نعتمد على مجتمعنا في الحفاظ على بيئة نظيفة وآمنة. إذا وجدت محتوى مخالفاً:</p>
-        <ul>
-          <li>استخدم زر <strong>"🚩 الإبلاغ عن هذا العمل"</strong> الموجود في صفحة كل عمل.</li>
-          <li>اختر السبب المناسب من القائمة.</li>
-          <li>أضف أي تفاصيل تساعدنا في التحقق من المخالفة.</li>
-        </ul>
-        <p>يُراجع فريق الإدارة جميع البلاغات ويتخذ الإجراء المناسب في أقرب وقت ممكن.</p>
+        <p>استخدم زر <strong>"🚩 الإبلاغ"</strong> الموجود في صفحة كل عمل. يُراجع فريق الإدارة جميع البلاغات ويتخذ الإجراء المناسب في أقرب وقت.</p>
       </div>
-
       <div class="terms-section" id="ts7">
         <h2>🛡️ 7. العقوبات والجزاءات</h2>
-        <p>في حال ثبوت انتهاك هذه الشروط، تحتفظ المنصة بحق اتخاذ الإجراءات التالية:</p>
         <ul>
           <li>⚠️ <strong>إنذار أول:</strong> تحذير رسمي وحذف المحتوى المخالف.</li>
           <li>🔴 <strong>انتهاك متكرر:</strong> تعليق الحساب مؤقتاً.</li>
@@ -4838,27 +4911,21 @@ footer a:hover{text-decoration:underline;}
           <li>⚖️ <strong>انتهاك قانوني:</strong> تزويد الجهات المعنية بالمعلومات اللازمة وفق القانون.</li>
         </ul>
       </div>
-
       <div class="terms-section" id="ts8">
         <h2>📬 8. التواصل معنا</h2>
-        <p>لأي استفسار أو إبلاغ عن انتهاك لحقوق ملكية أو للتواصل مع إدارة المنصة:</p>
         <div style="background:var(--s2);border:1px solid var(--br);border-radius:12px;padding:1.3rem;text-align:center;margin-top:1rem;">
           <p style="font-weight:800;font-size:.95rem;margin-bottom:.4rem">📧 تواصل مع الإدارة</p>
-          <p style="font-size:.83rem;color:var(--mu);margin-bottom:.7rem">إذا كنت صاحب حقوق ملكية وتجد محتوى منتهكاً، تواصل معنا فوراً وسنتخذ الإجراء اللازم.</p>
+          <p style="font-size:.83rem;color:var(--mu);margin-bottom:.7rem">إذا كنت صاحب حقوق ملكية وتجد محتوى منتهكاً، تواصل معنا فوراً.</p>
           <a href="mailto:younassouakka@gmail.com" style="color:var(--red);font-weight:700;font-size:.88rem">younassouakka@gmail.com</a>
         </div>
       </div>
-    </div><!-- end terms-body -->
-
-    <!-- Footer مع checkbox الموافقة -->
+    </div>
     <div class="terms-footer">
-      <label class="terms-agree-check" id="terms-agree-label">
+      <label class="terms-agree-check">
         <input type="checkbox" id="terms-modal-cb" onchange="document.getElementById('terms-accept-btn').disabled=!this.checked">
         <span>لقد قرأت وأوافق على جميع شروط الاستخدام وسياسة حقوق الملكية</span>
       </label>
-      <button class="terms-accept-btn" id="terms-accept-btn" disabled onclick="acceptTerms()">
-        ✅ أوافق وأكمل التسجيل
-      </button>
+      <button class="terms-accept-btn" id="terms-accept-btn" disabled onclick="acceptTerms()">✅ أوافق وأكمل</button>
     </div>
   </div>
 </div>
@@ -4895,6 +4962,7 @@ footer a:hover{text-decoration:underline;}
     <div class="sb-section-label">التنقل</div>
     <a class="sb-link" onclick="closeSidebar();showPage('home')">🏠 الرئيسية</a>
     <a class="sb-link" onclick="closeSidebar();showPage('home');setTimeout(()=>G('browse-sec')?.scrollIntoView({behavior:'smooth'}),100)">🔍 تصفح الأعمال</a>
+    <a class="sb-link" onclick="closeSidebar();showPage('anime')">🎌 عالم الأنمي</a>
     <a class="sb-link" id="sb-library-link" onclick="closeSidebar();showPage('library')" style="display:none">📚 مكتبتي</a>
     <a class="sb-link" id="sb-profile-link" onclick="closeSidebar();showPage('profile')" style="display:none">👤 ملفي الشخصي</a>
     <a class="sb-link" href="https://mahbarat-alkhiyal.com" target="_blank" onclick="closeSidebar()">✦ محبرة الخيال</a>
@@ -5168,9 +5236,7 @@ footer a:hover{text-decoration:underline;}
     <p style="margin-top:.5rem">
       <a href="https://mahbarat-alkhiyal.com" target="_blank">✦ محبرة الخيال — مجتمع المبدعين العرب</a>
     </p>
-    <p style="margin-top:.6rem">
-      <a href="#" onclick="viewTerms();return false" style="color:rgba(240,240,255,.35);font-size:.78rem;text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='rgba(240,240,255,.35)'">📜 شروط الاستخدام وسياسة حقوق الملكية</a>
-    </p>
+    <p style="margin-top:.6rem"><a href="#" onclick="viewTerms();return false" style="color:rgba(240,240,255,.3);font-size:.78rem;text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='rgba(240,240,255,.3)'">📜 شروط الاستخدام وسياسة حقوق الملكية</a></p>
   </footer>
 </div>
 
@@ -5447,6 +5513,8 @@ async function handleRoute(){
     }
   } else if(hash==='#/library'){
     showPage('library');
+  } else if(hash==='#/anime'){
+    showPage('anime');
   } else {
     showPage('home');
   }
@@ -5531,33 +5599,162 @@ document.addEventListener('dragstart',e=>{
 });
 
 
-// ─── TERMS MODAL ───
-window.openTermsModal = function(fromRegister=true){
-  window._termsFromRegister = fromRegister;
-  // إعادة ضبط checkbox
-  const cb = document.getElementById('terms-modal-cb');
-  const btn = document.getElementById('terms-accept-btn');
-  if(cb){ cb.checked=false; }
-  if(btn){ btn.disabled=true; }
-  // إظهار/إخفاء زر الموافقة حسب السياق
-  const footer = document.querySelector('.terms-footer');
-  if(footer) footer.style.display = fromRegister ? 'flex' : 'none';
-  openModal('m-terms');
+// ─── ANIME PAGE (Jikan API) ───
+window._animeTab='top'; window._animePage=1; window._animeQuery=''; window._animeHasMore=true; window._animeLoaded=false;
+const JIKAN='https://api.jikan.moe/v4';
+const ANIME_TITLES={top:'الأفضل تقييماً',airing:'يُبث الآن',upcoming:'قادم قريباً',popular:'الأكثر شعبية',movie:'أفلام أنمي',ova:'OVA & ONA'};
+
+window.animeTab=function(btn,tab){
+  document.querySelectorAll('.atab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  window._animeTab=tab; window._animePage=1; window._animeQuery=''; window._animeHasMore=true;
+  const inp=G('anime-search-inp'); if(inp) inp.value='';
+  const h=G('anime-section-h'); if(h) h.textContent=ANIME_TITLES[tab]||tab;
+  fetchAnime(true);
 };
 
-window.acceptTerms = function(){
-  const cb = document.getElementById('terms-modal-cb');
+window.animeSearch=function(){
+  const q=(G('anime-search-inp')?.value||'').trim();
+  if(!q) return;
+  window._animeQuery=q; window._animePage=1; window._animeHasMore=true;
+  const h=G('anime-section-h'); if(h) h.textContent='نتائج: '+q;
+  document.querySelectorAll('.atab').forEach(b=>b.classList.remove('active'));
+  fetchAnime(true);
+};
+
+window.animeLoadMore=function(){
+  if(!window._animeHasMore) return;
+  window._animePage++; fetchAnime(false);
+};
+
+async function fetchAnime(reset=true){
+  const grid=G('anime-grid'), moreBtn=G('anime-load-more-btn'), countEl=G('anime-results-count');
+  if(!grid) return;
+  if(reset){ grid.innerHTML='<div class="anime-skeleton"></div>'.repeat(6); if(moreBtn) moreBtn.style.display='none'; if(countEl) countEl.textContent=''; }
+  else { if(moreBtn){ moreBtn.textContent='⏳ جاري التحميل...'; moreBtn.disabled=true; } }
+  try{
+    const p=window._animePage, q=window._animeQuery, tab=window._animeTab;
+    let url;
+    if(q) url=`${JIKAN}/anime?q=${encodeURIComponent(q)}&page=${p}&limit=18&sfw=true`;
+    else if(tab==='top') url=`${JIKAN}/top/anime?page=${p}&limit=18`;
+    else if(tab==='airing') url=`${JIKAN}/top/anime?filter=airing&page=${p}&limit=18`;
+    else if(tab==='upcoming') url=`${JIKAN}/top/anime?filter=upcoming&page=${p}&limit=18`;
+    else if(tab==='popular') url=`${JIKAN}/top/anime?filter=bypopularity&page=${p}&limit=18`;
+    else if(tab==='movie') url=`${JIKAN}/top/anime?type=movie&page=${p}&limit=18`;
+    else if(tab==='ova') url=`${JIKAN}/top/anime?type=ova&page=${p}&limit=18`;
+    else url=`${JIKAN}/top/anime?page=${p}&limit=18`;
+
+    const res=await fetch(url);
+    const data=await res.json();
+    const items=data.data||[];
+    const pagination=data.pagination||{};
+    window._animeHasMore=pagination.has_next_page||false;
+    if(reset) grid.innerHTML='';
+    if(items.length===0&&reset){ grid.innerHTML='<div class="empty-state" style="grid-column:1/-1">لا توجد نتائج 🌙</div>'; return; }
+    items.forEach(a=>grid.insertAdjacentHTML('beforeend',animeCard(a)));
+    if(countEl&&reset) countEl.textContent=pagination.items?.total?`${pagination.items.total.toLocaleString('ar')} نتيجة`:'';
+    if(moreBtn){ moreBtn.style.display=window._animeHasMore?'block':'none'; moreBtn.textContent='تحميل المزيد ⬇'; moreBtn.disabled=false; }
+  }catch(e){
+    if(reset) grid.innerHTML='<div class="empty-state" style="grid-column:1/-1">⚠️ خطأ في التحميل — تحقق من الاتصال</div>';
+    if(moreBtn) moreBtn.style.display='none';
+  }
+}
+
+function animeCard(a){
+  const img=a.images?.jpg?.large_image_url||a.images?.jpg?.image_url||'';
+  const title=a.title_arabic||a.title||'';
+  const score=a.score?'⭐ '+a.score:'';
+  const type=a.type||'';
+  const eps=a.episodes?a.episodes+' حلقة':'';
+  const year=a.year||(a.aired?.prop?.from?.year)||'';
+  const status=a.status==='Currently Airing'?'📡 يُبث':a.status==='Finished Airing'?'✅ مكتمل':a.status==='Not yet aired'?'🗓 قادم':'';
+  return `<div class="anime-card" onclick="openAnimeDetail(${a.mal_id})">
+    <div class="anime-card-img-wrap">
+      <img class="anime-card-img" src="${img}" alt="${title}" loading="lazy" onerror="this.src='https://placehold.co/150x225/1a1a2e/9B30FF?text=🎌'">
+      ${score?`<span class="anime-card-score">${score}</span>`:''}
+      ${type?`<span class="anime-card-type">${type}</span>`:''}
+    </div>
+    <div class="anime-card-body">
+      <div class="anime-card-title">${title}</div>
+      <div class="anime-card-meta">${[eps,year?'📅 '+year:'',status].filter(Boolean).join(' • ')}</div>
+    </div>
+  </div>`;
+}
+
+window.openAnimeDetail=async function(malId){
+  openModal('m-anime');
+  const body=G('anime-detail-body');
+  if(!body) return;
+  body.innerHTML='<div style="text-align:center;padding:2.5rem;font-size:2rem">⏳</div>';
+  try{
+    const [r1,r2]=await Promise.all([fetch(`${JIKAN}/anime/${malId}`),fetch(`${JIKAN}/anime/${malId}/characters`)]);
+    const d=(await r1.json()).data;
+    const chars=(await r2.json()).data?.slice(0,6)||[];
+    if(!d){body.innerHTML='<div class="empty-state">لم يتم العثور على البيانات</div>';return;}
+    const title=d.title_arabic||d.title||'';
+    const titleEn=d.title_english||d.title||'';
+    const img=d.images?.jpg?.large_image_url||d.images?.jpg?.image_url||'';
+    const synopsis=d.synopsis?d.synopsis.replace(/\[Written by MAL Rewrite\]/g,'').trim():'لا يوجد وصف';
+    const score=d.score||'—'; const episodes=d.episodes||'—';
+    const aired=d.aired?.string||'—';
+    const genres=(d.genres||[]).concat(d.themes||[]).map(g=>g.name);
+    const studios=(d.studios||[]).map(s=>s.name).join('، ')||'—';
+    const rank=d.rank?'#'+d.rank:'—'; const popularity=d.popularity?'#'+d.popularity:'—';
+    const statusBadge=d.status==='Currently Airing'?'adm-badge-green':d.status==='Finished Airing'?'adm-badge-purple':'adm-badge-gold';
+    const trailer=d.trailer?.url||'';
+    body.innerHTML=`
+      <img class="adm-cover" src="${img}" alt="${title}" onerror="this.style.display='none'">
+      <div class="adm-title">${title}</div>
+      ${titleEn&&titleEn!==title?`<div class="adm-title-en">${titleEn}</div>`:''}
+      <div class="adm-badges">
+        <span class="adm-badge ${statusBadge}">${d.status||''}</span>
+        ${d.type?`<span class="adm-badge adm-badge-purple">${d.type}</span>`:''}
+        ${score!=='—'?`<span class="adm-badge adm-badge-gold">⭐ ${score}</span>`:''}
+        ${rank!=='—'?`<span class="adm-badge adm-badge-red">🏆 ${rank}</span>`:''}
+      </div>
+      <div class="adm-stats">
+        <div class="adm-stat"><div class="n">${episodes}</div><div class="l">📺 حلقات</div></div>
+        <div class="adm-stat"><div class="n">${d.members?d.members.toLocaleString('ar'):'—'}</div><div class="l">👥 الأعضاء</div></div>
+        <div class="adm-stat"><div class="n">${popularity}</div><div class="l">🔥 الشعبية</div></div>
+      </div>
+      <div class="adm-genres">${genres.map(g=>`<span class="adm-genre-tag">${g}</span>`).join('')}</div>
+      <p style="font-size:.78rem;color:var(--mu);margin-bottom:.4rem">🎬 ${studios} &nbsp;|&nbsp; 📅 ${aired}</p>
+      <div class="adm-synopsis">${synopsis}</div>
+      ${chars.length?`<div style="margin-bottom:.8rem"><p style="font-size:.8rem;font-weight:800;color:var(--mu);margin-bottom:.6rem">👥 الشخصيات</p><div style="display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.4rem">${chars.map(ch=>`<div style="flex-shrink:0;text-align:center;width:60px"><img src="${ch.character?.images?.jpg?.image_url||''}" style="width:50px;height:50px;border-radius:50%;object-fit:cover;border:2px solid rgba(155,48,255,.4)" onerror="this.style.display='none'"><div style="font-size:.62rem;color:var(--mu);margin-top:.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ch.character?.name||''}</div></div>`).join('')}</div></div>`:''}
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+        <a href="https://myanimelist.net/anime/${d.mal_id}" target="_blank" rel="noopener" class="wa-btn wa-read">🔗 MAL</a>
+        ${trailer?`<a href="${trailer}" target="_blank" rel="noopener" class="wa-btn" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171">▶️ تريلر</a>`:''}
+      </div>`;
+  }catch(e){ body.innerHTML='<div class="empty-state">⚠️ فشل تحميل البيانات</div>'; }
+};
+
+// ─── TERMS ───
+window.openTermsModal=function(fromRegister=true){
+  window._termsFromRegister=fromRegister;
+  const cb=document.getElementById('terms-modal-cb');
+  const btn=document.getElementById('terms-accept-btn');
+  if(cb) cb.checked=false;
+  if(btn) btn.disabled=true;
+  const footer=document.querySelector('.terms-footer');
+  if(footer) footer.style.display=fromRegister?'flex':'none';
+  openModal('m-terms');
+};
+window.acceptTerms=function(){
+  const cb=document.getElementById('terms-modal-cb');
   if(!cb?.checked) return;
-  // فعّل checkbox التسجيل
-  const regCb = document.getElementById('reg-terms-cb');
-  if(regCb) regCb.checked = true;
+  const regCb=document.getElementById('reg-terms-cb');
+  if(regCb) regCb.checked=true;
   closeModal('m-terms');
   toast('✅ تمت الموافقة على الشروط');
 };
+window.viewTerms=function(){ openTermsModal(false); };
 
-// رابط الشروط في الفوتر
-window.viewTerms = function(){
-  openTermsModal(false);
+// ─── ROUTER — أنمي ───
+const _origShowPage=window.showPage;
+window.showPage=function(n){
+  _origShowPage(n);
+  if(n==='anime'&&!window._animeLoaded){ window._animeLoaded=true; fetchAnime(true); }
+  if(n==='anime') history.replaceState(null,'','#/anime');
 };
 
 window._curPage='home';
