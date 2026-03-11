@@ -103,11 +103,28 @@ onAuthStateChanged(auth, async user=>{
     // طبّق صور الحساب الجديد فقط
     if(CUD.avatarUrl) setAvatarUI(CUD.avatarUrl);
     if(CUD.coverUrl)  setCoverUI(CUD.coverUrl);
-    // ✅ تحديث إطار المستوى فور جلب البيانات
-    if(window.updateAvatarRing && window.calcPoints && window.CUD){
-      const _pts = calcPoints(window.CUD);
-      updateAvatarRing(_pts);
-    }
+    // ✅ تحديث إطار المستوى — نجلب الأعمال ونحسب النقاط الحقيقية
+    (async()=>{
+      try{
+        const _ws = await getDocs(query(collection(db,"works"), where("authorId","==",user.uid)));
+        const _works = _ws.docs.map(d=>d.data());
+        const _realData = {
+          worksCount: _works.length,
+          totalViews: _works.reduce((s,w)=>s+(w.views||0),0),
+          totalLikes: _works.reduce((s,w)=>s+(w.likes||0),0),
+          totalRatings: CUD.totalRatings||0,
+          totalComments: CUD.totalComments||0,
+          followers: Array.isArray(CUD.followers)?CUD.followers:[]
+        };
+        const _realPts = calcPoints(_realData);
+        updateAvatarRing(_realPts);
+        window.CUD = {...CUD, points: _realPts, worksCount: _works.length};
+      }catch(e){
+        // fallback: استخدام النقاط المحفوظة
+        const _pts = CUD.points || calcPoints(CUD);
+        updateAvatarRing(_pts);
+      }
+    })();
     // أظهر/أخفي زر الإدارة
     const adminBtn=G("nav-admin-btn");
     if(adminBtn) adminBtn.style.display=isAdmin()?"inline-flex":"none";
@@ -2375,13 +2392,17 @@ window.loadProfile=async()=>{
     followers: Array.isArray(d.followers) ? d.followers : []
   };
   const realPts = calcPoints(realData);
-  // تحديث فوري + تأكيد بعد 300ms
+  // حفظ النقاط في Firestore حتى تكون متاحة عند تسجيل الدخول
+  try{
+    await setDoc(doc(db,"users",CU.uid),{points: realPts, worksCount: allWorks.length, totalViews: realTotalViews},{merge:true});
+    window.CUD = {...(window.CUD||{}), points: realPts, worksCount: allWorks.length};
+  }catch(e){}
+  // تحديث فوري
   updateAvatarRing(realPts);
   if(G("p-badge-display")) G("p-badge-display").innerHTML = badgeHTML(realPts, "lg");
   if(G("p-points-count")) G("p-points-count").textContent = realPts.toLocaleString("ar");
   if(G("p-stats-points")) G("p-stats-points").textContent = realPts.toLocaleString("ar");
   if(G("av-badge-icon")) G("av-badge-icon").textContent = getBadge(realPts).icon;
-  setTimeout(()=>{ updateAvatarRing(realPts); }, 500);
 
   // أفضل الأعمال (ترتيب حسب المشاهدات)
   const topSec = G("p-top-works-sec");
