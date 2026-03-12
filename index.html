@@ -651,27 +651,33 @@ window.loadHeroSlider=async()=>{
     if(snap.empty){wrap.innerHTML=defaultHeroSlide();return;}
     let slides=[];
     snap.forEach(d=>slides.push({id:d.id,...d.data()}));
-    // ترتيب حسب المشاهدات محلياً
     slides.sort((a,b)=>(b.views||0)-(a.views||0));
     slides=slides.slice(0,5);
-    wrap.innerHTML=slides.map((w,i)=>`
-      <div class="hslide ${i===0?"active":""}" data-id="${w.id}"
+
+    // الشريحة الترويجية الثابتة
+    const PROMO_IMG = "https://ahmnycfbfonmztxmwqdi.supabase.co/storage/v1/object/public/pdfs/uploads/og-image.jpg";
+    const promoSlide = `<div class="hslide active" style="cursor:default;padding:0;overflow:hidden;"><img src="${PROMO_IMG}" alt="MangaVerse" style="width:100%;height:100%;object-fit:cover;object-position:center;display:block;"></div>`;
+
+    const workSlides = slides.map(w=>`
+      <div class="hslide" data-id="${w.id}"
         style="background-image:linear-gradient(to left,transparent 30%,rgba(8,8,15,.95) 70%),url('${w.coverUrl||""}');background-size:cover;background-position:center">
         <div class="hslide-content">
           <div class="hslide-badge">${statusBadge(w.status)} ${w.genre}</div>
           <h2 class="hslide-title">${w.title}</h2>
           <p class="hslide-desc">${(w.desc||"").substring(0,120)}...</p>
-          <div class="hslide-meta">✍️ ${w.authorName||""} ${w.authorVerified?'<span class="vbadge">✦ موثق</span>':''} &nbsp;•&nbsp; 👁 ${w.views||0} &nbsp;•&nbsp; ⭐ ${(w.rating||0).toFixed(1)}</div>
+          <div class="hslide-meta">\u270d\ufe0f ${w.authorName||""} ${w.authorVerified?'<span class="vbadge">\u2746 \u0645\u0648\u062b\u0642</span>':''} &nbsp;\u2022&nbsp; \ud83d\udc41 ${w.views||0} &nbsp;\u2022&nbsp; \u2b50 ${(w.rating||0).toFixed(1)}</div>
           <div class="hslide-btns">
-            <button class="hslide-btn-p" onclick="openWork('${w.id}')">📖 اقرأ الآن</button>
-            <button class="hslide-btn-o" onclick="event.stopPropagation();toggleBookmark('${w.id}')">🔖 حفظ</button>
+            <button class="hslide-btn-p" onclick="openWork('${w.id}')">\ud83d\udcd6 \u0627\u0642\u0631\u0623 \u0627\u0644\u0622\u0646</button>
+            <button class="hslide-btn-o" onclick="event.stopPropagation();toggleBookmark('${w.id}')">\ud83d\udd16 \u062d\u0641\u0638</button>
           </div>
         </div>
       </div>`).join("");
-    // dots
+
+    wrap.innerHTML = promoSlide + workSlides;
+    const totalSlides = slides.length + 1;
     const dots=G("slider-dots");
-    if(dots) dots.innerHTML=slides.map((_,i)=>`<div class="sdot ${i===0?"active":""}" onclick="goSlide(${i})"></div>`).join("");
-    startSlider(slides.length);
+    if(dots) dots.innerHTML=Array.from({length:totalSlides},(_,i)=>`<div class="sdot ${i===0?"active":""}" onclick="goSlide(${i})"></div>`).join("");
+    startSlider(totalSlides);
   }catch(e){wrap.innerHTML=defaultHeroSlide();}
 };
 
@@ -4476,102 +4482,74 @@ footer a:hover{text-decoration:underline;}
   background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);color:#fcd34d;}
 
 
-/* ══ ACHIEVEMENTS PAGE ══ */
-.ach-hero{background:linear-gradient(135deg,#0a0010 0%,#1a0828 50%,#080810 100%);
-  border-bottom:1px solid rgba(245,158,11,.15);padding:2.5rem 0 1.5rem;text-align:center;position:relative;overflow:hidden;}
-.ach-hero::before{content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse at 50% 0%,rgba(245,158,11,.1) 0%,transparent 65%);pointer-events:none;}
-.ach-hero h1{font-family:'Bebas Neue',sans-serif;font-size:3rem;letter-spacing:3px;
-  background:linear-gradient(135deg,#f59e0b,#fcd34d,#f59e0b);-webkit-background-clip:text;
+
+
+
+/* ══ ABOUT PAGE ══ */
+.about-hero{position:relative;overflow:hidden;padding:4rem 1.5rem 3rem;text-align:center;
+  background:linear-gradient(180deg,#080010 0%,#0d0018 50%,#080010 100%);}
+.about-hero::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(232,25,44,.12) 0%,transparent 65%);pointer-events:none;}
+.about-hero-title{font-family:'Bebas Neue',sans-serif;font-size:3.5rem;letter-spacing:4px;
+  background:linear-gradient(135deg,#fff,rgba(255,255,255,.6));-webkit-background-clip:text;
   -webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.3rem;}
-.ach-hero p{color:rgba(255,255,255,.45);font-size:.9rem;}
+.about-hero-sub{color:rgba(255,255,255,.4);font-size:.95rem;letter-spacing:1px;}
 
-/* بطاقة المستوى */
-.ach-level-card{max-width:600px;margin:1.5rem auto 0;padding:0 1rem;}
-.ach-level-inner{background:rgba(255,255,255,.04);border:1px solid rgba(245,158,11,.2);
-  border-radius:18px;padding:1.4rem 1.6rem;display:flex;align-items:center;gap:1.2rem;}
-.ach-level-icon{font-size:3rem;flex-shrink:0;}
-.ach-level-info{flex:1;}
-.ach-level-name{font-size:1.1rem;font-weight:900;margin-bottom:.2rem;}
-.ach-level-pts{font-size:.82rem;color:rgba(255,255,255,.5);margin-bottom:.6rem;}
-.ach-progress-wrap{background:rgba(255,255,255,.08);border-radius:20px;height:10px;overflow:hidden;}
-.ach-progress-bar{height:100%;border-radius:20px;transition:width 1s ease;
-  background:linear-gradient(90deg,#f59e0b,#fcd34d);}
-.ach-progress-lbl{font-size:.7rem;color:rgba(255,255,255,.35);margin-top:.3rem;text-align:left;}
+/* بطاقة المؤسس */
+.founder-card{max-width:700px;margin:2.5rem auto;padding:0 1rem;}
+.founder-inner{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
+  border-radius:24px;padding:2rem;display:flex;gap:2rem;align-items:center;
+  position:relative;overflow:hidden;}
+.founder-inner::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;
+  background:radial-gradient(circle,rgba(232,25,44,.08),transparent 70%);pointer-events:none;}
+.founder-img{width:120px;height:120px;border-radius:50%;object-fit:cover;flex-shrink:0;
+  border:3px solid rgba(232,25,44,.4);box-shadow:0 0 20px rgba(232,25,44,.2);}
+.founder-info{}
+.founder-name-ar{font-size:1.4rem;font-weight:900;color:#fff;margin-bottom:.1rem;}
+.founder-name-en{font-size:.85rem;color:rgba(255,255,255,.35);letter-spacing:1px;margin-bottom:.6rem;font-family:'Rajdhani',sans-serif;}
+.founder-role{display:inline-block;background:rgba(232,25,44,.12);border:1px solid rgba(232,25,44,.3);
+  color:var(--red);border-radius:20px;padding:.2rem .8rem;font-size:.75rem;font-weight:700;margin-bottom:.8rem;}
+.founder-bio{font-size:.88rem;color:rgba(255,255,255,.55);line-height:1.8;}
 
-/* تبويبات */
-.ach-tabs{display:flex;gap:.5rem;padding:1.5rem 1rem .5rem;max-width:700px;margin:0 auto;}
-.ach-tab{flex:1;padding:.6rem;border-radius:10px;border:1.5px solid rgba(255,255,255,.1);
-  background:transparent;color:rgba(255,255,255,.4);font-family:'Tajawal';font-size:.88rem;
-  font-weight:700;cursor:pointer;transition:all .25s;text-align:center;}
-.ach-tab.active{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.4);color:#fcd34d;}
+/* أقسام */
+.about-section{max-width:700px;margin:0 auto;padding:1.5rem 1rem;}
+.about-section-title{font-size:1.15rem;font-weight:900;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;}
+.about-section-title::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.07);}
 
-/* إحصائيات سريعة */
-.ach-quick-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.7rem;
-  max-width:700px;margin:1rem auto;padding:0 1rem;}
-.ach-qs{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
-  border-radius:12px;padding:.8rem .5rem;text-align:center;}
-.ach-qs .n{font-size:1.4rem;font-weight:900;}
-.ach-qs .l{font-size:.65rem;color:rgba(255,255,255,.4);margin-top:.1rem;}
+/* بطاقات القيم */
+.values-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem;margin-bottom:2rem;}
+.value-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
+  border-radius:16px;padding:1.2rem;transition:border-color .25s;}
+.value-card:hover{border-color:rgba(232,25,44,.25);}
+.value-icon{font-size:1.8rem;margin-bottom:.5rem;}
+.value-name{font-size:.88rem;font-weight:800;margin-bottom:.3rem;}
+.value-desc{font-size:.75rem;color:rgba(255,255,255,.4);line-height:1.6;}
 
-/* شبكة الإنجازات */
-.ach-section{max-width:700px;margin:0 auto;padding:1rem;}
-.ach-section-title{font-size:1rem;font-weight:900;margin-bottom:.3rem;}
-.ach-section-sub{font-size:.78rem;color:rgba(255,255,255,.4);margin-bottom:1rem;}
-.ach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-bottom:2rem;}
+/* إحصائيات */
+.about-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-bottom:2rem;}
+.about-stat{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
+  border-radius:16px;padding:1.2rem;text-align:center;}
+.about-stat .n{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--red);}
+.about-stat .l{font-size:.7rem;color:rgba(255,255,255,.4);margin-top:.2rem;}
 
-/* بطاقة الإنجاز */
-.ach-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
-  border-radius:16px;padding:1rem .7rem;text-align:center;cursor:default;transition:all .25s;position:relative;overflow:hidden;}
-.ach-card.earned{background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.25);cursor:pointer;}
-.ach-card.earned:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(245,158,11,.15);}
-.ach-card.locked{opacity:.45;filter:grayscale(.6);}
+/* الرؤية */
+.vision-box{background:linear-gradient(135deg,rgba(232,25,44,.06),rgba(155,48,255,.06));
+  border:1px solid rgba(232,25,44,.15);border-radius:20px;padding:1.8rem;text-align:center;margin-bottom:2rem;}
+.vision-box p{font-size:.95rem;color:rgba(255,255,255,.65);line-height:1.9;}
 
-/* الأيقونة الخماسية (Pentagon) */
-.ach-badge-wrap{width:70px;height:70px;margin:0 auto .6rem;position:relative;}
-.ach-pentagon{width:70px;height:70px;display:flex;align-items:center;justify-content:center;
-  clip-path:polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%);
-  font-size:1.6rem;transition:all .3s;}
-.ach-card.earned .ach-pentagon{filter:drop-shadow(0 0 8px rgba(245,158,11,.5));}
-.ach-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15) 0%,transparent 50%);
-  clip-path:polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%);opacity:0;transition:opacity .3s;}
-.ach-card.earned:hover .ach-shine{opacity:1;}
+/* تواصل */
+.contact-box{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);
+  border-radius:20px;padding:1.5rem;text-align:center;margin-bottom:3rem;}
+.contact-box p{color:rgba(255,255,255,.45);font-size:.85rem;margin-bottom:1rem;}
+.contact-btn{display:inline-block;background:var(--red);color:#fff;padding:.7rem 2rem;
+  border-radius:12px;font-weight:700;text-decoration:none;font-size:.9rem;transition:opacity .2s;}
+.contact-btn:hover{opacity:.85;}
 
-/* أيقونة المعين (Diamond) */
-.ach-diamond{width:70px;height:70px;display:flex;align-items:center;justify-content:center;
-  clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);font-size:1.6rem;transition:all .3s;}
-
-/* أيقونة مستديرة */
-.ach-circle{width:70px;height:70px;display:flex;align-items:center;justify-content:center;
-  border-radius:50%;font-size:1.6rem;transition:all .3s;}
-
-.ach-card-name{font-size:.75rem;font-weight:800;line-height:1.3;margin-bottom:.2rem;}
-.ach-card-desc{font-size:.65rem;color:rgba(255,255,255,.4);line-height:1.4;}
-.ach-card-progress{margin-top:.5rem;}
-.ach-card-prog-bar{background:rgba(255,255,255,.08);border-radius:20px;height:4px;overflow:hidden;margin-bottom:.25rem;}
-.ach-card-prog-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,#f59e0b,#fcd34d);transition:width .8s ease;}
-.ach-card-prog-lbl{font-size:.6rem;color:rgba(255,255,255,.3);}
-.ach-earned-check{position:absolute;top:6px;left:6px;background:rgba(34,197,94,.2);
-  border:1px solid rgba(34,197,94,.4);color:#4ade80;border-radius:50%;
-  width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:.6rem;}
-
-/* ألوان المستويات */
-.clr-bronze{background:linear-gradient(135deg,#cd7f32,#a0522d);}
-.clr-silver{background:linear-gradient(135deg,#9ca3af,#6b7280);}
-.clr-gold{background:linear-gradient(135deg,#f59e0b,#d97706);}
-.clr-purple{background:linear-gradient(135deg,#9B30FF,#6d00cc);}
-.clr-red{background:linear-gradient(135deg,#e8192c,#b91c1c);}
-.clr-blue{background:linear-gradient(135deg,#3b82f6,#1d4ed8);}
-.clr-green{background:linear-gradient(135deg,#22c55e,#15803d);}
-.clr-pink{background:linear-gradient(135deg,#ec4899,#be185d);}
-.clr-cyan{background:linear-gradient(135deg,#06b6d4,#0284c7);}
-.clr-orange{background:linear-gradient(135deg,#f97316,#c2410c);}
-.clr-diamond{background:linear-gradient(135deg,#00D4FF,#9B30FF,#FF00FF);}
-
-@media(max-width:480px){.ach-grid{grid-template-columns:repeat(3,1fr);gap:.5rem;}
-  .ach-quick-stats{grid-template-columns:repeat(2,1fr);}
-  .ach-pentagon,.ach-diamond,.ach-circle{width:58px;height:58px;font-size:1.3rem;}
-  .ach-badge-wrap{width:58px;height:58px;}
+@media(max-width:480px){
+  .founder-inner{flex-direction:column;text-align:center;}
+  .values-grid{grid-template-columns:1fr;}
+  .about-stats{grid-template-columns:repeat(3,1fr);}
+  .about-hero-title{font-size:2.5rem;}
 }
 
 </style>
@@ -5246,49 +5224,116 @@ footer a:hover{text-decoration:underline;}
   </div>
 </div>
 
-<!-- ACHIEVEMENTS PAGE -->
-<div class="page" id="page-achievements">
-  <div class="ach-hero">
+
+<!-- ABOUT PAGE -->
+<div class="page" id="page-about">
+
+  <!-- Hero -->
+  <div class="about-hero">
     <div style="position:relative;z-index:1">
-      <h1>🏆 إنجازاتي</h1>
-      <p>تتبع تقدمك واجمع الشارات لتثبت مكانتك في المنصة</p>
+      <div class="about-hero-title">من نحن</div>
+      <div class="about-hero-sub">القصة وراء MangaVerse</div>
     </div>
   </div>
 
-  <!-- بطاقة المستوى -->
-  <div class="ach-level-card">
-    <div class="ach-level-inner">
-      <div class="ach-level-icon" id="ach-level-icon">🌱</div>
-      <div class="ach-level-info">
-        <div class="ach-level-name" id="ach-level-name">مبتدئ</div>
-        <div class="ach-level-pts" id="ach-level-pts">0 نقطة</div>
-        <div class="ach-progress-wrap">
-          <div class="ach-progress-bar" id="ach-progress-bar" style="width:0%"></div>
+  <!-- بطاقة المؤسس -->
+  <div class="founder-card">
+    <div class="founder-inner">
+      <img class="founder-img"
+        src="https://ahmnycfbfonmztxmwqdi.supabase.co/storage/v1/object/public/pdfs/uploads/Picsart_26-03-12_21-49-16-410.png"
+        alt="Younes Ouakka">
+      <div class="founder-info">
+        <div class="founder-name-ar">يونس واقا</div>
+        <div class="founder-name-en">Younes Ouakka</div>
+        <div class="founder-role">🚀 مؤسس MangaVerse</div>
+        <div class="founder-bio">
+          شغوف بالكتابة والتصميم والاستقلالية — آمن بأن المبدع العربي يستحق مكاناً حقيقياً يعبّر فيه عن نفسه بحرية تامة، بعيداً عن القيود. فكانت MangaVerse ثمرة هذا الحلم.
         </div>
-        <div class="ach-progress-lbl" id="ach-progress-lbl"></div>
       </div>
     </div>
   </div>
 
-  <!-- إحصائيات سريعة -->
-  <div class="ach-quick-stats">
-    <div class="ach-qs"><div class="n" id="ach-qs-badges" style="color:#f59e0b">0</div><div class="l">🏅 شارة محققة</div></div>
-    <div class="ach-qs"><div class="n" id="ach-qs-points" style="color:#9B30FF">0</div><div class="l">⚡ نقطة</div></div>
-    <div class="ach-qs"><div class="n" id="ach-qs-read" style="color:#3b82f6">0</div><div class="l">📖 عمل مقروء</div></div>
-    <div class="ach-qs"><div class="n" id="ach-qs-likes" style="color:#e8192c">0</div><div class="l">❤️ إعجاب أُعطي</div></div>
+  <!-- رسالتنا -->
+  <div class="about-section">
+    <div class="about-section-title">📌 رسالتنا</div>
+    <div class="vision-box" style="text-align:right">
+      <p>
+        تقديم مكان حقيقي يجد فيه المبدعون العرب الحرية الكاملة لنشر ومشاركة أعمالهم مع العالم —
+        سواء كانت مانجا، روايات مصورة، أو قصصاً خيالية.
+        نؤمن بأن كل مبدع يحمل عالماً بداخله يستحق أن يُرى ويُقرأ.
+      </p>
+    </div>
   </div>
 
-  <!-- تبويبات -->
-  <div class="ach-tabs">
-    <button class="ach-tab active" onclick="achShowTab(this,'all')" id="ach-tab-all">الكل</button>
-    <button class="ach-tab" onclick="achShowTab(this,'earned')">✅ محققة</button>
-    <button class="ach-tab" onclick="achShowTab(this,'locked')">🔒 قادمة</button>
+  <!-- إحصائيات -->
+  <div class="about-section">
+    <div class="about-section-title">📊 المنصة بالأرقام</div>
+    <div class="about-stats">
+      <div class="about-stat">
+        <div class="n" id="about-stat-works">—</div>
+        <div class="l">📚 عمل منشور</div>
+      </div>
+      <div class="about-stat">
+        <div class="n" id="about-stat-users">—</div>
+        <div class="l">👥 مستخدم</div>
+      </div>
+      <div class="about-stat">
+        <div class="n" id="about-stat-views">—</div>
+        <div class="l">👁 مشاهدة</div>
+      </div>
+    </div>
   </div>
 
-  <!-- محتوى الإنجازات -->
-  <div class="ach-section" id="ach-content">
-    <div style="text-align:center;padding:3rem;color:rgba(255,255,255,.3)">⏳ جاري التحميل...</div>
+  <!-- قيمنا -->
+  <div class="about-section">
+    <div class="about-section-title">✨ قيمنا</div>
+    <div class="values-grid">
+      <div class="value-card">
+        <div class="value-icon">🎨</div>
+        <div class="value-name">الإبداع أولاً</div>
+        <div class="value-desc">نضع الإبداع في قلب كل قرار — المنصة بُنيت من أجل المبدع وليس العكس.</div>
+      </div>
+      <div class="value-card">
+        <div class="value-icon">🕊️</div>
+        <div class="value-name">الحرية الفنية</div>
+        <div class="value-desc">لكل مبدع أسلوبه الخاص، ونحن هنا لنمنحه الفضاء الذي يستحقه.</div>
+      </div>
+      <div class="value-card">
+        <div class="value-icon">🤝</div>
+        <div class="value-name">المجتمع</div>
+        <div class="value-desc">نبني مجتمعاً عربياً متماسكاً يدعم بعضه ويحتفي بالمواهب الأصيلة.</div>
+      </div>
+      <div class="value-card">
+        <div class="value-icon">🌍</div>
+        <div class="value-name">الهوية العربية</div>
+        <div class="value-desc">نفخر بهويتنا العربية ونسعى لإيصال إبداعنا لكل أنحاء العالم.</div>
+      </div>
+    </div>
   </div>
+
+  <!-- الرؤية -->
+  <div class="about-section">
+    <div class="about-section-title">🔭 رؤيتنا</div>
+    <div class="vision-box">
+      <p>
+        نرى MangaVerse في المستقبل أكبر وأشهر منصة عربية للمانجا والروايات المصورة في العالم العربي —
+        وجهةً لا يمكن لأي مبدع أو قارئ عربي الاستغناء عنها.
+        <br><br>
+        <span style="color:var(--red);font-weight:800">الحلم كبير، والبداية من هنا. ✦</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- تواصل -->
+  <div class="about-section">
+    <div class="contact-box">
+      <div style="font-size:1.5rem;margin-bottom:.5rem">📬</div>
+      <div style="font-weight:800;font-size:1rem;margin-bottom:.4rem">تواصل معنا</div>
+      <p>هل لديك اقتراح أو تريد الانضمام إلى فريق MangaVerse؟</p>
+      <a href="mailto:younassouakka@gmail.com" class="contact-btn">✉️ راسلنا</a>
+    </div>
+  </div>
+
 </div>
 <!-- SIDEBAR OVERLAY -->
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
@@ -5324,8 +5369,8 @@ footer a:hover{text-decoration:underline;}
     <a class="sb-link" onclick="closeSidebar();showPage('home');setTimeout(()=>G('browse-sec')?.scrollIntoView({behavior:'smooth'}),100)">🔍 تصفح الأعمال</a>
     <a class="sb-link" onclick="closeSidebar();showPage('anime')">🎌 عالم الأنمي</a>
     <a class="sb-link" id="sb-library-link" onclick="closeSidebar();showPage('library')" style="display:none">📚 مكتبتي</a>
-    <a class="sb-link" id="sb-achieve-link" onclick="closeSidebar();showPage('achievements')" style="display:none">🏆 إنجازاتي</a>
     <a class="sb-link" id="sb-profile-link" onclick="closeSidebar();showPage('profile')" style="display:none">👤 ملفي الشخصي</a>
+    <a class="sb-link" onclick="closeSidebar();showPage('about')">💡 من نحن</a>
     <a class="sb-link" href="https://mahbarat-alkhiyal.com" target="_blank" onclick="closeSidebar()">✦ محبرة الخيال</a>
     <a class="sb-link sb-admin-link" id="sb-admin-link" onclick="closeSidebar();window.openAdminDashboard()" style="display:none">⚙️ لوحة الإدارة</a>
   </div>
@@ -5695,7 +5740,7 @@ footer a:hover{text-decoration:underline;}
     <div style="margin-top:1.5rem" id="p-badges-section">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem">
         <span class="stag">🏅 شاراتي</span>
-        <button onclick="showPage('achievements')" style="background:transparent;border:none;color:var(--red);font-family:'Tajawal';font-size:.8rem;font-weight:700;cursor:pointer">عرض الكل ←</button>
+        
       </div>
       <div id="p-badges-grid" style="display:flex;gap:.5rem;flex-wrap:wrap;min-height:40px">
         <div style="color:rgba(255,255,255,.3);font-size:.82rem;padding:.5rem 0">لا توجد شارات بعد 🌱</div>
@@ -5888,8 +5933,6 @@ async function handleRoute(){
     showPage('library');
   } else if(hash==='#/anime'){
     showPage('anime');
-  } else if(hash==='#/achievements'){
-    showPage('achievements');
   } else {
     showPage('home');
   }
@@ -6128,9 +6171,9 @@ window.viewTerms=function(){ openTermsModal(false); };
 const _origShowPage=window.showPage;
 window.showPage=function(n){
   _origShowPage(n);
+  if(n==='about') loadAboutStats();
   if(n==='anime'&&!window._animeLoaded){ window._animeLoaded=true; fetchAnime(true); }
   if(n==='anime') history.replaceState(null,'','#/anime');
-  if(n==='achievements'){ loadAchievementsPage(); history.replaceState(null,'','#/achievements'); }
 };
 
 
@@ -6535,6 +6578,24 @@ function renderProfileBadges(earnedIds){
       <div style="font-size:.6rem;color:rgba(255,255,255,.45);max-width:44px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}</div>
     </div>`;
   }).join("") + (allEarned.length > 8 ? `<div onclick="showPage('achievements')" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid var(--br);border-radius:50%;font-size:.72rem;color:var(--mu);cursor:pointer">+${allEarned.length-8}</div>` : "");
+}
+
+
+// ── تحميل إحصائيات من نحن ──
+async function loadAboutStats(){
+  try{
+    const [worksSnap, usersSnap] = await Promise.all([
+      getDocs(query(collection(db,"works"), limit(1000))),
+      getDocs(query(collection(db,"users"), limit(1000)))
+    ]);
+    const totalWorks = worksSnap.size;
+    const totalUsers = usersSnap.size;
+    const totalViews = worksSnap.docs.reduce((s,d)=>s+(d.data().views||0),0);
+    const fmt = n => n >= 1000 ? (n/1000).toFixed(1)+'K' : n.toString();
+    const w=document.getElementById("about-stat-works"); if(w) w.textContent=fmt(totalWorks);
+    const u=document.getElementById("about-stat-users"); if(u) u.textContent=fmt(totalUsers);
+    const v=document.getElementById("about-stat-views"); if(v) v.textContent=fmt(totalViews);
+  }catch(e){}
 }
 
 window._curPage='home';
