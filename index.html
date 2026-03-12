@@ -34,12 +34,13 @@ const app  = initializeApp(FB);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 
-// ─── Cloudinary Unsigned Upload ───
-const CDN_CLOUD  = "ddsfdyjek";
-const CDN_PRESET = "mangaverse_upload";
+// ─── Supabase Storage Upload ───
+const SUPA_URL  = "https://ahmnycfbfonmztxmwqdi.supabase.co";
+const SUPA_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFobW55Y2ZiZm9ubXp0eG13cWRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjA5NDIsImV4cCI6MjA4ODgzNjk0Mn0.OT3KRneaviAoLb50ZhUe58B4tuX3BD0QODkAgBFcbWY";
+const SUPA_BUCKET = "pdfs";
 
 async function cloudinaryUpload(file) {
-  // ─── التحقق من نوع الملف (MIME) — حماية من رفع ملفات ضارة ───
+  // ─── التحقق من نوع الملف (MIME) ───
   const ALLOWED_TYPES = [
     'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
     'image/gif', 'application/pdf'
@@ -47,25 +48,32 @@ async function cloudinaryUpload(file) {
   if (!ALLOWED_TYPES.includes(file.type)) {
     throw new Error("نوع الملف غير مسموح به — يُسمح فقط بـ JPG/PNG/WEBP/GIF/PDF");
   }
-  // Cloudinary free plan: max 10MB per file
-  if(file.size > 10 * 1024 * 1024) {
-    throw new Error("حجم الملف أكبر من 10MB — الحد الأقصى في الخطة المجانية");
+  if(file.size > 50 * 1024 * 1024) {
+    throw new Error("حجم الملف أكبر من 50MB");
   }
-  const fd = new FormData();
-  fd.append("file", file);
-  fd.append("upload_preset", CDN_PRESET);
-  const isRaw = file.type === "application/pdf";
-  const resType = isRaw ? "raw" : "image";
-  // جعل الملف عاماً — يحل مشكلة 401
-  if(isRaw) {
-    fd.append("access_mode", "public");
-    fd.append("type", "upload");
+
+  // اسم فريد للملف
+  const ext = file.name.split('.').pop();
+  const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const filePath = `uploads/${fileName}`;
+
+  const r = await fetch(`${SUPA_URL}/storage/v1/object/${SUPA_BUCKET}/${filePath}`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${SUPA_KEY}`,
+      "Content-Type": file.type,
+      "x-upsert": "true"
+    },
+    body: file
+  });
+
+  if (!r.ok) {
+    const err = await r.json().catch(()=>({}));
+    throw new Error(err.message || "فشل الرفع إلى Supabase");
   }
-  const url = `https://api.cloudinary.com/v1_1/${CDN_CLOUD}/${resType}/upload`;
-  const r = await fetch(url, { method: "POST", body: fd });
-  const j = await r.json();
-  if (j.secure_url) return j.secure_url;
-  throw new Error(j.error?.message || "فشل الرفع إلى Cloudinary");
+
+  // رابط عام للملف
+  return `${SUPA_URL}/storage/v1/object/public/${SUPA_BUCKET}/${filePath}`;
 }
 
 // ─── XSS Protection: تنظيف نصوص المستخدمين ───
