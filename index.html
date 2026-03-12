@@ -2857,6 +2857,172 @@ function updateNavUI(on){
     const navAv=G("nav-av"); if(navAv){ navAv.style.backgroundImage="none"; navAv.textContent="☰"; }
   }
 }
+
+
+// ══════════════════════════════════════════
+// ─── POINTS & BADGES & LIKES (داخل module) ───
+// ══════════════════════════════════════════
+const POINTS_CONFIG = {
+  like_given:    2,
+  like_received: 3,
+  read_work:     1,
+  post_work:    10,
+  get_comment:   2,
+  daily_login:   5,
+};
+
+function showBadgeNotify(badge){
+  const el = document.getElementById("badge-notify");
+  const icon = document.getElementById("badge-notify-icon");
+  const title = document.getElementById("badge-notify-title");
+  const sub = document.getElementById("badge-notify-sub");
+  if(!el) return;
+  icon.textContent = badge.icon;
+  title.textContent = `🏅 شارة جديدة: ${badge.name}`;
+  sub.textContent = badge.desc;
+  el.style.display = "flex";
+  setTimeout(()=>{ el.classList.add("show"); }, 50);
+  setTimeout(()=>{ el.classList.remove("show"); setTimeout(()=>{ el.style.display="none"; },400); }, 4500);
+}
+
+async function addPoints(uid, action, sourceEl=null){
+  const pts = POINTS_CONFIG[action] || 0;
+  if(!pts || !uid) return;
+  try{
+    await setDoc(doc(db,"users",uid), { points: increment(pts) }, { merge:true });
+    if(sourceEl){
+      const el = document.createElement("div");
+      el.className = "pts-pop";
+      el.textContent = `+${pts} نقطة`;
+      const r = sourceEl.getBoundingClientRect();
+      el.style.cssText = `left:${r.left+r.width/2}px;top:${r.top}px;position:fixed;`;
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(), 1300);
+    }
+    const snap = await getDoc(doc(db,"users",uid));
+    if(snap.exists()) window._checkAndAwardBadges(uid, snap.data());
+  }catch(e){}
+}
+
+window._checkAndAwardBadges = async function(uid, userData){
+  const earned = userData.badges || [];
+  const ACHIEVEMENTS_IDS = window._ACHIEVEMENTS || [];
+  for(const ach of ACHIEVEMENTS_IDS){
+    if(earned.includes(ach.id)) continue;
+    if(ach.key === "_always") continue;
+    const val = userData[ach.key]||0;
+    if(val >= ach.target){
+      try{
+        const newBadges = [...earned, ach.id];
+        await setDoc(doc(db,"users",uid),{ badges: newBadges },{ merge:true });
+        showBadgeNotify({ icon: ach.icon, name: ach.name, desc: ach.desc });
+        earned.push(ach.id);
+      }catch(e){}
+    }
+  }
+};
+
+window.toggleLike = async function(workId){
+  if(!CU) return toast("⚠️ سجّل دخولك أولاً","w");
+  const btn = document.getElementById("wm-like-btn");
+  const uid = CU.uid;
+  try{
+    const wRef = doc(db,"works",workId);
+    const wSnap = await getDoc(wRef);
+    if(!wSnap.exists()) return;
+    const w = wSnap.data();
+    const likedBy = w.likedBy || [];
+    const alreadyLiked = likedBy.includes(uid);
+    if(alreadyLiked){
+      await updateDoc(wRef,{
+        likedBy: likedBy.filter(id=>id!==uid),
+        likes: Math.max((w.likes||1)-1, 0)
+      });
+      if(btn){ btn.classList.remove("liked"); btn.textContent = `❤️ إعجاب`; }
+    } else {
+      await updateDoc(wRef,{
+        likedBy: [...likedBy, uid],
+        likes: (w.likes||0) + 1
+      });
+      if(btn){
+        btn.classList.add("liked","pop");
+        setTimeout(()=>btn.classList.remove("pop"),300);
+        btn.textContent = `❤️ أعجبني`;
+      }
+      await addPoints(uid, "like_given", btn);
+      if(w.authorId && w.authorId !== uid){
+        await setDoc(doc(db,"users",w.authorId),{
+          totalLikes: increment(1),
+          points: increment(POINTS_CONFIG.like_received)
+        },{ merge:true });
+        const authorSnap = await getDoc(doc(db,"users",w.authorId));
+        if(authorSnap.exists()) window._checkAndAwardBadges(w.authorId, authorSnap.data());
+      }
+    }
+    const updated = await getDoc(wRef);
+    const uw = updated.data();
+    const viewsEl = document.getElementById("wm-views");
+    if(viewsEl) viewsEl.textContent = `👁 ${uw.views||0}  ❤️ ${uw.likes||0}  🔖 ${uw.bookmarkCount||0}`;
+  }catch(e){ toast("❌ حدث خطأ: "+e.message,"e"); }
+};
+
+window.updateLikeBtn = async function(id){
+  if(!CU) return;
+  try{
+    const wSnap = await getDoc(doc(db,"works",id));
+    if(!wSnap.exists()) return;
+    const likedBy = wSnap.data().likedBy || [];
+    const likes = wSnap.data().likes || 0;
+    const btn = document.getElementById("wm-like-btn");
+    if(btn){
+      if(likedBy.includes(CU.uid)){
+        btn.classList.add("liked"); btn.textContent = `❤️ أعجبني (${likes})`;
+      } else {
+        btn.classList.remove("liked"); btn.textContent = `❤️ إعجاب (${likes})`;
+      }
+    }
+    Promise.all([
+      addPoints(CU.uid, "read_work"),
+      setDoc(doc(db,"users",CU.uid),{ worksRead: increment(1) },{ merge:true })
+    ]).then(async()=>{
+      const updated = await getDoc(doc(db,"users",CU.uid));
+      if(updated.exists()) window._checkAndAwardBadges(CU.uid, updated.data());
+    }).catch(()=>{});
+  }catch(e){}
+};
+
+async function checkDailyLogin(){
+  if(!CU) return;
+  try{
+    const today = new Date().toDateString();
+    const uSnap = await getDoc(doc(db,"users",CU.uid));
+    if(!uSnap.exists()) return;
+    const data = uSnap.data();
+    if(data.lastLoginDate !== today){
+      await setDoc(doc(db,"users",CU.uid),{
+        lastLoginDate: today,
+        points: increment(POINTS_CONFIG.daily_login)
+      },{ merge:true });
+      toast(`☀️ حصلت على ${POINTS_CONFIG.daily_login} نقاط لدخولك اليومي`);
+      const updated = await getDoc(doc(db,"users",CU.uid));
+      window._checkAndAwardBadges(CU.uid, updated.data());
+    }
+  }catch(e){}
+}
+
+async function awardFirstRegBadge(uid){
+  try{
+    const snap = await getDoc(doc(db,"users",uid));
+    if(snap.exists()){
+      const badges = snap.data().badges||[];
+      if(!badges.includes("first_reg")){
+        await setDoc(doc(db,"users",uid),{ badges:[...badges,"first_reg"] },{ merge:true });
+        setTimeout(()=>showBadgeNotify({ icon:"🎉", name:"مرحباً بك!", desc:"أنشأت حسابك في MangaVerse" }),2000);
+      }
+    }
+  }catch(e){}
+}
+
 </script>
 
 <style>
@@ -3558,6 +3724,8 @@ textarea.fc{resize:none;}
 .wa-follow:hover{border-color:var(--red);color:var(--red);}
 .wa-bk{background:rgba(245,166,35,.1);border:1.5px solid rgba(245,166,35,.3);color:var(--gold);}
 .wa-bk.bk-act{background:var(--gold);color:#000;}
+.wa-download{background:rgba(59,130,246,.12);border:1.5px solid rgba(59,130,246,.4);color:#60a5fa;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;}
+.wa-download:hover{background:rgba(59,130,246,.25);transform:translateY(-2px);}
 .wa-support{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;}
 .wa-audio{background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;}
 .wa-trailer{background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;}
@@ -5969,14 +6137,7 @@ window.showPage=function(n){
 // ══════════════════════════════════════════
 // ─── POINTS & BADGES SYSTEM ───
 // ══════════════════════════════════════════
-const POINTS_CONFIG = {
-  like_given:    2,   // أعطى إعجاب
-  like_received: 3,   // استلم إعجاب
-  read_work:     1,   // قرأ عملاً
-  post_work:    10,   // نشر عملاً
-  get_comment:   2,   // استلم تعليقاً
-  daily_login:   5,   // دخول يومي
-};
+// (moved to module)
 
 const BADGES_CONFIG = [
   { id:"first_like",    icon:"❤️",  name:"أول إعجاب",       desc:"أعطيت إعجابك الأول",          condition: u => (u.likesGiven||0) >= 1 },
