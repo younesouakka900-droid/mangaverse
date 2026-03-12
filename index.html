@@ -4277,6 +4277,134 @@ footer a:hover{text-decoration:underline;}
 .reg-terms-row label{font-size:.83rem;color:var(--mu);cursor:pointer;line-height:1.6;}
 .reg-terms-row label a{color:var(--red);font-weight:700;text-decoration:none;}
 
+
+/* ══ LIKE BUTTON ══ */
+.wa-like{background:rgba(232,25,44,.1);border:1px solid rgba(232,25,44,.3);color:var(--red);transition:all .25s;}
+.wa-like.liked{background:var(--red);color:#fff;box-shadow:0 0 14px rgba(232,25,44,.4);}
+.wa-like:active{transform:scale(.92);}
+@keyframes heartPop{0%{transform:scale(1)}50%{transform:scale(1.35)}100%{transform:scale(1)}}
+.wa-like.pop{animation:heartPop .3s ease;}
+
+/* ══ POINTS & BADGES ══ */
+.badge-notify{position:fixed;bottom:5rem;left:50%;transform:translateX(-50%) translateY(80px);
+  background:linear-gradient(135deg,#1a1a2e,#2d1b4e);border:1px solid rgba(155,48,255,.4);
+  border-radius:16px;padding:1rem 1.5rem;z-index:9999;transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+  display:flex;align-items:center;gap:.8rem;pointer-events:none;min-width:220px;}
+.badge-notify.show{transform:translateX(-50%) translateY(0);}
+.badge-notify-icon{font-size:2rem;flex-shrink:0;}
+.badge-notify-text .title{font-size:.88rem;font-weight:800;color:#fff;}
+.badge-notify-text .sub{font-size:.75rem;color:rgba(255,255,255,.5);margin-top:.1rem;}
+
+.pts-pop{position:fixed;pointer-events:none;font-family:'Bebas Neue',sans-serif;font-size:1.3rem;
+  color:#f59e0b;text-shadow:0 0 10px rgba(245,158,11,.6);z-index:9999;
+  animation:ptsFly 1.2s ease forwards;}
+@keyframes ptsFly{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-60px) scale(1.2)}}
+
+.user-level{display:inline-flex;align-items:center;gap:.35rem;background:rgba(155,48,255,.12);
+  border:1px solid rgba(155,48,255,.3);border-radius:20px;padding:.2rem .6rem;font-size:.72rem;font-weight:700;color:#b06eff;}
+.user-badges-row{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.5rem;}
+.ubadge{padding:.22rem .6rem;border-radius:20px;font-size:.7rem;font-weight:700;
+  background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);color:#fcd34d;}
+
+
+/* ══ ACHIEVEMENTS PAGE ══ */
+.ach-hero{background:linear-gradient(135deg,#0a0010 0%,#1a0828 50%,#080810 100%);
+  border-bottom:1px solid rgba(245,158,11,.15);padding:2.5rem 0 1.5rem;text-align:center;position:relative;overflow:hidden;}
+.ach-hero::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(245,158,11,.1) 0%,transparent 65%);pointer-events:none;}
+.ach-hero h1{font-family:'Bebas Neue',sans-serif;font-size:3rem;letter-spacing:3px;
+  background:linear-gradient(135deg,#f59e0b,#fcd34d,#f59e0b);-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.3rem;}
+.ach-hero p{color:rgba(255,255,255,.45);font-size:.9rem;}
+
+/* بطاقة المستوى */
+.ach-level-card{max-width:600px;margin:1.5rem auto 0;padding:0 1rem;}
+.ach-level-inner{background:rgba(255,255,255,.04);border:1px solid rgba(245,158,11,.2);
+  border-radius:18px;padding:1.4rem 1.6rem;display:flex;align-items:center;gap:1.2rem;}
+.ach-level-icon{font-size:3rem;flex-shrink:0;}
+.ach-level-info{flex:1;}
+.ach-level-name{font-size:1.1rem;font-weight:900;margin-bottom:.2rem;}
+.ach-level-pts{font-size:.82rem;color:rgba(255,255,255,.5);margin-bottom:.6rem;}
+.ach-progress-wrap{background:rgba(255,255,255,.08);border-radius:20px;height:10px;overflow:hidden;}
+.ach-progress-bar{height:100%;border-radius:20px;transition:width 1s ease;
+  background:linear-gradient(90deg,#f59e0b,#fcd34d);}
+.ach-progress-lbl{font-size:.7rem;color:rgba(255,255,255,.35);margin-top:.3rem;text-align:left;}
+
+/* تبويبات */
+.ach-tabs{display:flex;gap:.5rem;padding:1.5rem 1rem .5rem;max-width:700px;margin:0 auto;}
+.ach-tab{flex:1;padding:.6rem;border-radius:10px;border:1.5px solid rgba(255,255,255,.1);
+  background:transparent;color:rgba(255,255,255,.4);font-family:'Tajawal';font-size:.88rem;
+  font-weight:700;cursor:pointer;transition:all .25s;text-align:center;}
+.ach-tab.active{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.4);color:#fcd34d;}
+
+/* إحصائيات سريعة */
+.ach-quick-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.7rem;
+  max-width:700px;margin:1rem auto;padding:0 1rem;}
+.ach-qs{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
+  border-radius:12px;padding:.8rem .5rem;text-align:center;}
+.ach-qs .n{font-size:1.4rem;font-weight:900;}
+.ach-qs .l{font-size:.65rem;color:rgba(255,255,255,.4);margin-top:.1rem;}
+
+/* شبكة الإنجازات */
+.ach-section{max-width:700px;margin:0 auto;padding:1rem;}
+.ach-section-title{font-size:1rem;font-weight:900;margin-bottom:.3rem;}
+.ach-section-sub{font-size:.78rem;color:rgba(255,255,255,.4);margin-bottom:1rem;}
+.ach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-bottom:2rem;}
+
+/* بطاقة الإنجاز */
+.ach-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
+  border-radius:16px;padding:1rem .7rem;text-align:center;cursor:default;transition:all .25s;position:relative;overflow:hidden;}
+.ach-card.earned{background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.25);cursor:pointer;}
+.ach-card.earned:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(245,158,11,.15);}
+.ach-card.locked{opacity:.45;filter:grayscale(.6);}
+
+/* الأيقونة الخماسية (Pentagon) */
+.ach-badge-wrap{width:70px;height:70px;margin:0 auto .6rem;position:relative;}
+.ach-pentagon{width:70px;height:70px;display:flex;align-items:center;justify-content:center;
+  clip-path:polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%);
+  font-size:1.6rem;transition:all .3s;}
+.ach-card.earned .ach-pentagon{filter:drop-shadow(0 0 8px rgba(245,158,11,.5));}
+.ach-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15) 0%,transparent 50%);
+  clip-path:polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%);opacity:0;transition:opacity .3s;}
+.ach-card.earned:hover .ach-shine{opacity:1;}
+
+/* أيقونة المعين (Diamond) */
+.ach-diamond{width:70px;height:70px;display:flex;align-items:center;justify-content:center;
+  clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);font-size:1.6rem;transition:all .3s;}
+
+/* أيقونة مستديرة */
+.ach-circle{width:70px;height:70px;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;font-size:1.6rem;transition:all .3s;}
+
+.ach-card-name{font-size:.75rem;font-weight:800;line-height:1.3;margin-bottom:.2rem;}
+.ach-card-desc{font-size:.65rem;color:rgba(255,255,255,.4);line-height:1.4;}
+.ach-card-progress{margin-top:.5rem;}
+.ach-card-prog-bar{background:rgba(255,255,255,.08);border-radius:20px;height:4px;overflow:hidden;margin-bottom:.25rem;}
+.ach-card-prog-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,#f59e0b,#fcd34d);transition:width .8s ease;}
+.ach-card-prog-lbl{font-size:.6rem;color:rgba(255,255,255,.3);}
+.ach-earned-check{position:absolute;top:6px;left:6px;background:rgba(34,197,94,.2);
+  border:1px solid rgba(34,197,94,.4);color:#4ade80;border-radius:50%;
+  width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:.6rem;}
+
+/* ألوان المستويات */
+.clr-bronze{background:linear-gradient(135deg,#cd7f32,#a0522d);}
+.clr-silver{background:linear-gradient(135deg,#9ca3af,#6b7280);}
+.clr-gold{background:linear-gradient(135deg,#f59e0b,#d97706);}
+.clr-purple{background:linear-gradient(135deg,#9B30FF,#6d00cc);}
+.clr-red{background:linear-gradient(135deg,#e8192c,#b91c1c);}
+.clr-blue{background:linear-gradient(135deg,#3b82f6,#1d4ed8);}
+.clr-green{background:linear-gradient(135deg,#22c55e,#15803d);}
+.clr-pink{background:linear-gradient(135deg,#ec4899,#be185d);}
+.clr-cyan{background:linear-gradient(135deg,#06b6d4,#0284c7);}
+.clr-orange{background:linear-gradient(135deg,#f97316,#c2410c);}
+.clr-diamond{background:linear-gradient(135deg,#00D4FF,#9B30FF,#FF00FF);}
+
+@media(max-width:480px){.ach-grid{grid-template-columns:repeat(3,1fr);gap:.5rem;}
+  .ach-quick-stats{grid-template-columns:repeat(2,1fr);}
+  .ach-pentagon,.ach-diamond,.ach-circle{width:58px;height:58px;font-size:1.3rem;}
+  .ach-badge-wrap{width:58px;height:58px;}
+}
+
 </style>
 <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/younesouakka900-droid/%D8%B9%D8%A7%D9%84%D9%85-%D8%A7%D9%84%D9%85%D8%A7%D9%86%D8%AC%D8%A7/main/favicon.png">
 <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/younesouakka900-droid/%D8%B9%D8%A7%D9%84%D9%85-%D8%A7%D9%84%D9%85%D8%A7%D9%86%D8%AC%D8%A7/main/favicon.png">
@@ -4651,6 +4779,7 @@ footer a:hover{text-decoration:underline;}
         <div class="wm-actions">
           <button class="wa-btn wa-read" id="wm-read-btn">📖 قراءة</button>
           <button class="wa-btn" id="wm-chapters-btn" onclick="openChapters(window._wid)" style="background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.4);color:var(--gold);display:none">📚 الفصول</button>
+          <button class="wa-btn wa-like" id="wm-like-btn" onclick="toggleLike(window._wid)">❤️ إعجاب</button>
           <button class="wa-btn wa-bk" id="wm-bk-btn" onclick="toggleBookmark(window._wid)" aria-label="حفظ العمل في المكتبة">🔖 حفظ</button>
           <button class="wa-btn wa-follow" id="wm-follow-btn" style="display:none">➕ تابع</button>
         </div>
@@ -4938,6 +5067,60 @@ footer a:hover{text-decoration:underline;}
   </div>
 </div>
 
+
+<!-- BADGE NOTIFICATION -->
+<div class="badge-notify" id="badge-notify">
+  <div class="badge-notify-icon" id="badge-notify-icon">🏆</div>
+  <div class="badge-notify-text">
+    <div class="title" id="badge-notify-title">شارة جديدة!</div>
+    <div class="sub" id="badge-notify-sub">لقد حصلت على شارة جديدة</div>
+  </div>
+</div>
+
+<!-- ACHIEVEMENTS PAGE -->
+<div class="page" id="page-achievements">
+  <div class="ach-hero">
+    <div style="position:relative;z-index:1">
+      <h1>🏆 إنجازاتي</h1>
+      <p>تتبع تقدمك واجمع الشارات لتثبت مكانتك في المنصة</p>
+    </div>
+  </div>
+
+  <!-- بطاقة المستوى -->
+  <div class="ach-level-card">
+    <div class="ach-level-inner">
+      <div class="ach-level-icon" id="ach-level-icon">🌱</div>
+      <div class="ach-level-info">
+        <div class="ach-level-name" id="ach-level-name">مبتدئ</div>
+        <div class="ach-level-pts" id="ach-level-pts">0 نقطة</div>
+        <div class="ach-progress-wrap">
+          <div class="ach-progress-bar" id="ach-progress-bar" style="width:0%"></div>
+        </div>
+        <div class="ach-progress-lbl" id="ach-progress-lbl"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- إحصائيات سريعة -->
+  <div class="ach-quick-stats">
+    <div class="ach-qs"><div class="n" id="ach-qs-badges" style="color:#f59e0b">0</div><div class="l">🏅 شارة محققة</div></div>
+    <div class="ach-qs"><div class="n" id="ach-qs-points" style="color:#9B30FF">0</div><div class="l">⚡ نقطة</div></div>
+    <div class="ach-qs"><div class="n" id="ach-qs-read" style="color:#3b82f6">0</div><div class="l">📖 عمل مقروء</div></div>
+    <div class="ach-qs"><div class="n" id="ach-qs-likes" style="color:#e8192c">0</div><div class="l">❤️ إعجاب أُعطي</div></div>
+  </div>
+
+  <!-- تبويبات -->
+  <div class="ach-tabs">
+    <button class="ach-tab active" onclick="achShowTab(this,'all')" id="ach-tab-all">الكل</button>
+    <button class="ach-tab" onclick="achShowTab(this,'earned')">✅ محققة</button>
+    <button class="ach-tab" onclick="achShowTab(this,'locked')">🔒 قادمة</button>
+  </div>
+
+  <!-- محتوى الإنجازات -->
+  <div class="ach-section" id="ach-content">
+    <div style="text-align:center;padding:3rem;color:rgba(255,255,255,.3)">⏳ جاري التحميل...</div>
+  </div>
+</div>
 <!-- SIDEBAR OVERLAY -->
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
@@ -4972,6 +5155,7 @@ footer a:hover{text-decoration:underline;}
     <a class="sb-link" onclick="closeSidebar();showPage('home');setTimeout(()=>G('browse-sec')?.scrollIntoView({behavior:'smooth'}),100)">🔍 تصفح الأعمال</a>
     <a class="sb-link" onclick="closeSidebar();showPage('anime')">🎌 عالم الأنمي</a>
     <a class="sb-link" id="sb-library-link" onclick="closeSidebar();showPage('library')" style="display:none">📚 مكتبتي</a>
+    <a class="sb-link" id="sb-achieve-link" onclick="closeSidebar();showPage('achievements')" style="display:none">🏆 إنجازاتي</a>
     <a class="sb-link" id="sb-profile-link" onclick="closeSidebar();showPage('profile')" style="display:none">👤 ملفي الشخصي</a>
     <a class="sb-link" href="https://mahbarat-alkhiyal.com" target="_blank" onclick="closeSidebar()">✦ محبرة الخيال</a>
     <a class="sb-link sb-admin-link" id="sb-admin-link" onclick="closeSidebar();window.openAdminDashboard()" style="display:none">⚙️ لوحة الإدارة</a>
@@ -5523,6 +5707,8 @@ async function handleRoute(){
     showPage('library');
   } else if(hash==='#/anime'){
     showPage('anime');
+  } else if(hash==='#/achievements'){
+    showPage('achievements');
   } else {
     showPage('home');
   }
@@ -5763,7 +5949,398 @@ window.showPage=function(n){
   _origShowPage(n);
   if(n==='anime'&&!window._animeLoaded){ window._animeLoaded=true; fetchAnime(true); }
   if(n==='anime') history.replaceState(null,'','#/anime');
+  if(n==='achievements'){ loadAchievementsPage(); history.replaceState(null,'','#/achievements'); }
 };
+
+
+// ══════════════════════════════════════════
+// ─── POINTS & BADGES SYSTEM ───
+// ══════════════════════════════════════════
+const POINTS_CONFIG = {
+  like_given:    2,   // أعطى إعجاب
+  like_received: 3,   // استلم إعجاب
+  read_work:     1,   // قرأ عملاً
+  post_work:    10,   // نشر عملاً
+  get_comment:   2,   // استلم تعليقاً
+  daily_login:   5,   // دخول يومي
+};
+
+const BADGES_CONFIG = [
+  { id:"first_like",    icon:"❤️",  name:"أول إعجاب",       desc:"أعطيت إعجابك الأول",          condition: u => (u.likesGiven||0) >= 1 },
+  { id:"reader_10",     icon:"📖",  name:"قارئ نشط",         desc:"قرأت 10 أعمال",               condition: u => (u.worksRead||0) >= 10 },
+  { id:"reader_50",     icon:"📚",  name:"قارئ متمرس",       desc:"قرأت 50 عملاً",               condition: u => (u.worksRead||0) >= 50 },
+  { id:"creator_1",     icon:"✏️",  name:"مبدع صاعد",        desc:"نشرت أول عمل",                condition: u => (u.worksCount||0) >= 1 },
+  { id:"creator_5",     icon:"🔥",  name:"مبدع نشط",         desc:"نشرت 5 أعمال",                condition: u => (u.worksCount||0) >= 5 },
+  { id:"popular_100",   icon:"⭐",  name:"نجم صاعد",          desc:"حصلت على 100 إعجاب",          condition: u => (u.totalLikes||0) >= 100 },
+  { id:"popular_500",   icon:"💫",  name:"نجم المنصة",        desc:"حصلت على 500 إعجاب",          condition: u => (u.totalLikes||0) >= 500 },
+  { id:"pts_100",       icon:"🥉",  name:"مستوى برونزي",     desc:"جمعت 100 نقطة",               condition: u => (u.points||0) >= 100 },
+  { id:"pts_500",       icon:"🥈",  name:"مستوى فضي",        desc:"جمعت 500 نقطة",               condition: u => (u.points||0) >= 500 },
+  { id:"pts_1000",      icon:"🥇",  name:"مستوى ذهبي",       desc:"جمعت 1000 نقطة",              condition: u => (u.points||0) >= 1000 },
+  { id:"diamond",       icon:"💎",  name:"ماسي",              desc:"جمعت 5000 نقطة",              condition: u => (u.points||0) >= 5000 },
+];
+
+function getUserLevel(points){
+  if(points >= 5000) return { label:"💎 ماسي",     color:"#00D4FF" };
+  if(points >= 1000) return { label:"🥇 ذهبي",     color:"#f59e0b" };
+  if(points >= 500)  return { label:"🥈 فضي",      color:"#9ca3af" };
+  if(points >= 100)  return { label:"🥉 برونزي",   color:"#cd7f32" };
+  return                    { label:"🌱 مبتدئ",    color:"#4ade80" };
+}
+
+async function addPoints(uid, action, sourceEl=null){
+  const pts = POINTS_CONFIG[action] || 0;
+  if(!pts || !uid) return;
+  try{
+    await setDoc(doc(db,"users",uid), { points: increment(pts) }, { merge:true });
+    // تأثير بصري
+    if(sourceEl){
+      const el = document.createElement("div");
+      el.className = "pts-pop";
+      el.textContent = `+${pts} نقطة`;
+      const r = sourceEl.getBoundingClientRect();
+      el.style.cssText = `left:${r.left+r.width/2}px;top:${r.top}px;`;
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(), 1300);
+    }
+    // تحقق من الشارات الجديدة
+    const snap = await getDoc(doc(db,"users",uid));
+    if(snap.exists()) checkAndAwardBadges(uid, snap.data());
+  }catch(e){}
+}
+
+async function checkAndAwardBadges(uid, userData){
+  const earned = userData.badges || [];
+  for(const badge of BADGES_CONFIG){
+    if(!earned.includes(badge.id) && badge.condition(userData)){
+      try{
+        await setDoc(doc(db,"users",uid),{ badges: [...earned, badge.id] },{ merge:true });
+        showBadgeNotify(badge);
+        earned.push(badge.id);
+      }catch(e){}
+    }
+  }
+}
+
+function showBadgeNotify(badge){
+  const el = document.getElementById("badge-notify");
+  const icon = document.getElementById("badge-notify-icon");
+  const title = document.getElementById("badge-notify-title");
+  const sub = document.getElementById("badge-notify-sub");
+  if(!el) return;
+  icon.textContent = badge.icon;
+  title.textContent = `🏅 شارة جديدة: ${badge.name}`;
+  sub.textContent = badge.desc;
+  el.classList.add("show");
+  setTimeout(()=>el.classList.remove("show"), 4000);
+}
+
+// ── زر الإعجاب ──
+window.toggleLike = async function(workId){
+  if(!CU) return toast("⚠️ سجّل دخولك أولاً","w");
+  const btn = document.getElementById("wm-like-btn");
+  const uid = CU.uid;
+  try{
+    const wRef = doc(db,"works",workId);
+    const wSnap = await getDoc(wRef);
+    if(!wSnap.exists()) return;
+    const w = wSnap.data();
+    const likedBy = w.likedBy || [];
+    const alreadyLiked = likedBy.includes(uid);
+
+    if(alreadyLiked){
+      // إلغاء الإعجاب
+      await updateDoc(wRef,{
+        likedBy: likedBy.filter(id=>id!==uid),
+        likes: Math.max((w.likes||1)-1, 0)
+      });
+      if(btn){ btn.classList.remove("liked"); btn.textContent = `❤️ إعجاب`; }
+    } else {
+      // إضافة إعجاب
+      await updateDoc(wRef,{
+        likedBy: [...likedBy, uid],
+        likes: (w.likes||0) + 1
+      });
+      if(btn){
+        btn.classList.add("liked","pop");
+        setTimeout(()=>btn.classList.remove("pop"),300);
+        btn.textContent = `❤️ أعجبني`;
+      }
+      // نقاط للمعجِب
+      await addPoints(uid, "like_given", btn);
+      // نقاط لصاحب العمل
+      if(w.authorId && w.authorId !== uid){
+        await setDoc(doc(db,"users",w.authorId),{
+          totalLikes: increment(1),
+          points: increment(POINTS_CONFIG.like_received)
+        },{ merge:true });
+        const authorSnap = await getDoc(doc(db,"users",w.authorId));
+        if(authorSnap.exists()) checkAndAwardBadges(w.authorId, authorSnap.data());
+      }
+    }
+    // تحديث العداد في الـ modal
+    const updated = await getDoc(wRef);
+    const uw = updated.data();
+    const viewsEl = document.getElementById("wm-views");
+    if(viewsEl) viewsEl.textContent = `👁 ${uw.views||0}  ❤️ ${uw.likes||0}  🔖 ${uw.bookmarkCount||0}`;
+  }catch(e){ toast("❌ حدث خطأ: "+e.message,"e"); }
+};
+
+// تحديث حالة زر الإعجاب عند فتح العمل
+const _origOpenWork = window.openWork;
+window.openWork = async function(id){
+  await _origOpenWork(id);
+  if(!CU) return;
+  try{
+    const wSnap = await getDoc(doc(db,"works",id));
+    if(!wSnap.exists()) return;
+    const likedBy = wSnap.data().likedBy || [];
+    const likes = wSnap.data().likes || 0;
+    const btn = document.getElementById("wm-like-btn");
+    if(btn){
+      if(likedBy.includes(CU.uid)){
+        btn.classList.add("liked");
+        btn.textContent = `❤️ أعجبني (${likes})`;
+      } else {
+        btn.classList.remove("liked");
+        btn.textContent = `❤️ إعجاب (${likes})`;
+      }
+    }
+    // نقاط القراءة
+    await addPoints(CU.uid, "read_work");
+    // تحقق شارات
+    const uSnap = await getDoc(doc(db,"users",CU.uid));
+    if(uSnap.exists()){
+      await setDoc(doc(db,"users",CU.uid),{ worksRead: increment(1) },{ merge:true });
+      const updated = await getDoc(doc(db,"users",CU.uid));
+      checkAndAwardBadges(CU.uid, updated.data());
+    }
+  }catch(e){}
+};
+
+// نقاط عند النشر
+const _origDoPublish = window.doPublish;
+if(_origDoPublish){
+  window.doPublish = async function(...args){
+    await _origDoPublish(...args);
+    if(CU) await addPoints(CU.uid, "post_work");
+  };
+}
+
+// نقاط الدخول اليومي
+async function checkDailyLogin(){
+  if(!CU) return;
+  try{
+    const today = new Date().toDateString();
+    const uSnap = await getDoc(doc(db,"users",CU.uid));
+    if(!uSnap.exists()) return;
+    const data = uSnap.data();
+    if(data.lastLoginDate !== today){
+      await setDoc(doc(db,"users",CU.uid),{
+        lastLoginDate: today,
+        points: increment(POINTS_CONFIG.daily_login)
+      },{ merge:true });
+      toast(`☀️ مرحباً! حصلت على ${POINTS_CONFIG.daily_login} نقاط لدخولك اليومي`);
+      const updated = await getDoc(doc(db,"users",CU.uid));
+      checkAndAwardBadges(CU.uid, updated.data());
+    }
+  }catch(e){}
+}
+
+
+// ══════════════════════════════════════════
+// ─── ACHIEVEMENTS PAGE ───
+// ══════════════════════════════════════════
+const ACHIEVEMENTS = [
+  // ── القارئ ──
+  { id:"read_1",      shape:"pentagon", clr:"clr-blue",    icon:"📖", name:"أول خطوة",        desc:"اقرأ عملاً واحداً",          cat:"reader",   target:1,   key:"worksRead" },
+  { id:"read_10",     shape:"pentagon", clr:"clr-blue",    icon:"📚", name:"قارئ نشط",         desc:"اقرأ 10 أعمال",              cat:"reader",   target:10,  key:"worksRead" },
+  { id:"read_50",     shape:"pentagon", clr:"clr-cyan",    icon:"🌊", name:"قارئ متمرس",       desc:"اقرأ 50 عملاً",              cat:"reader",   target:50,  key:"worksRead" },
+  { id:"read_100",    shape:"diamond",  clr:"clr-purple",  icon:"🔮", name:"قارئ محترف",       desc:"اقرأ 100 عمل",               cat:"reader",   target:100, key:"worksRead" },
+  { id:"read_500",    shape:"diamond",  clr:"clr-diamond", icon:"💎", name:"أسطورة القراءة",   desc:"اقرأ 500 عمل",               cat:"reader",   target:500, key:"worksRead" },
+
+  // ── المبدع ──
+  { id:"create_1",    shape:"pentagon", clr:"clr-red",     icon:"✏️", name:"مبدع صاعد",        desc:"انشر عملاً واحداً",           cat:"creator",  target:1,   key:"worksCount" },
+  { id:"create_3",    shape:"pentagon", clr:"clr-orange",  icon:"🔥", name:"مبدع نشط",         desc:"انشر 3 أعمال",               cat:"creator",  target:3,   key:"worksCount" },
+  { id:"create_10",   shape:"diamond",  clr:"clr-orange",  icon:"⚡", name:"مبدع محترف",       desc:"انشر 10 أعمال",              cat:"creator",  target:10,  key:"worksCount" },
+  { id:"create_25",   shape:"diamond",  clr:"clr-gold",    icon:"👑", name:"ملك الإبداع",       desc:"انشر 25 عملاً",              cat:"creator",  target:25,  key:"worksCount" },
+
+  // ── التفاعل ──
+  { id:"like_1",      shape:"circle",   clr:"clr-red",     icon:"❤️", name:"أول إعجاب",        desc:"أعطِ إعجابك الأول",           cat:"social",   target:1,   key:"likesGiven" },
+  { id:"like_50",     shape:"circle",   clr:"clr-pink",    icon:"💝", name:"موزع الحب",         desc:"أعطِ 50 إعجاباً",             cat:"social",   target:50,  key:"likesGiven" },
+  { id:"like_200",    shape:"diamond",  clr:"clr-pink",    icon:"💖", name:"قلب كبير",          desc:"أعطِ 200 إعجاب",             cat:"social",   target:200, key:"likesGiven" },
+
+  // ── الشعبية ──
+  { id:"recv_10",     shape:"pentagon", clr:"clr-gold",    icon:"⭐", name:"نجم صاعد",          desc:"استلم 10 إعجابات",            cat:"popular",  target:10,  key:"totalLikes" },
+  { id:"recv_100",    shape:"pentagon", clr:"clr-gold",    icon:"🌟", name:"محبوب المنصة",      desc:"استلم 100 إعجاب",             cat:"popular",  target:100, key:"totalLikes" },
+  { id:"recv_500",    shape:"diamond",  clr:"clr-gold",    icon:"💫", name:"نجم المنصة",        desc:"استلم 500 إعجاب",             cat:"popular",  target:500, key:"totalLikes" },
+  { id:"recv_1000",   shape:"diamond",  clr:"clr-diamond", icon:"🚀", name:"أسطورة المنصة",    desc:"استلم 1000 إعجاب",            cat:"popular",  target:1000,key:"totalLikes" },
+
+  // ── المشاهدات ──
+  { id:"views_1k",    shape:"circle",   clr:"clr-blue",    icon:"👁", name:"ألف مشاهدة",        desc:"حصّل 1000 مشاهدة",            cat:"popular",  target:1000,key:"totalViews" },
+  { id:"views_10k",   shape:"circle",   clr:"clr-cyan",    icon:"🔭", name:"عشرة آلاف",         desc:"حصّل 10,000 مشاهدة",          cat:"popular",  target:10000,key:"totalViews"},
+
+  // ── النقاط ──
+  { id:"pts_100",     shape:"pentagon", clr:"clr-bronze",  icon:"🥉", name:"برونزي",            desc:"اجمع 100 نقطة",               cat:"points",   target:100, key:"points" },
+  { id:"pts_500",     shape:"pentagon", clr:"clr-silver",  icon:"🥈", name:"فضي",               desc:"اجمع 500 نقطة",               cat:"points",   target:500, key:"points" },
+  { id:"pts_1000",    shape:"diamond",  clr:"clr-gold",    icon:"🥇", name:"ذهبي",              desc:"اجمع 1000 نقطة",              cat:"points",   target:1000,key:"points" },
+  { id:"pts_5000",    shape:"diamond",  clr:"clr-diamond", icon:"💎", name:"ماسي",              desc:"اجمع 5000 نقطة",              cat:"points",   target:5000,key:"points" },
+
+  // ── خاصة ──
+  { id:"daily_7",     shape:"circle",   clr:"clr-green",   icon:"📅", name:"أسبوع منتظم",       desc:"ادخل 7 أيام متتالية",         cat:"special",  target:7,   key:"loginStreak" },
+  { id:"daily_30",    shape:"diamond",  clr:"clr-green",   icon:"🌿", name:"شهر منتظم",         desc:"ادخل 30 يوماً متتالية",       cat:"special",  target:30,  key:"loginStreak" },
+  { id:"first_reg",   shape:"circle",   clr:"clr-purple",  icon:"🎉", name:"مرحباً بك!",         desc:"أنشئت حسابك في المنصة",       cat:"special",  target:1,   key:"_always" },
+];
+
+const LEVELS = [
+  { min:0,    max:99,   icon:"🌱", name:"مبتدئ",    clr:"#4ade80" },
+  { min:100,  max:499,  icon:"🥉", name:"برونزي",   clr:"#cd7f32" },
+  { min:500,  max:999,  icon:"🥈", name:"فضي",      clr:"#9ca3af" },
+  { min:1000, max:4999, icon:"🥇", name:"ذهبي",     clr:"#f59e0b" },
+  { min:5000, max:Infinity, icon:"💎", name:"ماسي", clr:"#00D4FF" },
+];
+
+function getLevel(pts){
+  return LEVELS.find(l=>pts>=l.min && pts<=l.max) || LEVELS[0];
+}
+
+window._achTab = "all";
+window.achShowTab = function(btn, tab){
+  document.querySelectorAll(".ach-tab").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  window._achTab = tab;
+  renderAchievements(window._achUserData || {});
+};
+
+async function loadAchievementsPage(){
+  if(!CU){ showPage("home"); return openModal("m-auth"); }
+  try{
+    const snap = await getDoc(doc(db,"users",CU.uid));
+    const data = snap.exists() ? snap.data() : {};
+    window._achUserData = data;
+    updateAchievementsUI(data);
+    renderAchievements(data);
+  }catch(e){
+    document.getElementById("ach-content").innerHTML =
+      '<div style="text-align:center;padding:2rem;color:rgba(255,255,255,.4)">❌ فشل التحميل</div>';
+  }
+}
+
+function updateAchievementsUI(data){
+  const pts = data.points || 0;
+  const lvl = getLevel(pts);
+  const nextLvl = LEVELS.find(l=>l.min > pts);
+  const earned = (data.badges||[]).length;
+
+  // بطاقة المستوى
+  const icon = document.getElementById("ach-level-icon");
+  const name = document.getElementById("ach-level-name");
+  const ptsEl = document.getElementById("ach-level-pts");
+  const bar = document.getElementById("ach-progress-bar");
+  const lbl = document.getElementById("ach-progress-lbl");
+  if(icon) icon.textContent = lvl.icon;
+  if(name){ name.textContent = lvl.name; name.style.color = lvl.clr; }
+  if(ptsEl) ptsEl.textContent = `${pts.toLocaleString("ar")} نقطة`;
+  if(bar){
+    const pct = nextLvl ? Math.min(100, ((pts - lvl.min)/(nextLvl.min - lvl.min))*100) : 100;
+    bar.style.width = pct + "%";
+    bar.style.background = `linear-gradient(90deg,${lvl.clr},#fcd34d)`;
+  }
+  if(lbl) lbl.textContent = nextLvl ? `${(nextLvl.min - pts).toLocaleString("ar")} نقطة للمستوى التالي: ${nextLvl.name}` : "🏆 وصلت للمستوى الأعلى!";
+
+  // إحصائيات سريعة
+  const qs = (id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  qs("ach-qs-badges", earned);
+  qs("ach-qs-points", pts.toLocaleString("ar"));
+  qs("ach-qs-read", data.worksRead||0);
+  qs("ach-qs-likes", data.likesGiven||0);
+}
+
+function renderAchievements(data){
+  const earned = data.badges || [];
+  const tab = window._achTab || "all";
+
+  let list = ACHIEVEMENTS;
+  if(tab === "earned") list = ACHIEVEMENTS.filter(a => earned.includes(a.id) || a.key === "_always");
+  if(tab === "locked") list = ACHIEVEMENTS.filter(a => !earned.includes(a.id) && a.key !== "_always");
+
+  // تقسيم: محققة أولاً ثم القادمة
+  const earnedList = list.filter(a => earned.includes(a.id) || a.key === "_always");
+  const lockedList = list.filter(a => !earned.includes(a.id) && a.key !== "_always");
+
+  let html = "";
+
+  if(earnedList.length > 0){
+    html += `<div class="ach-section-title">✅ الإنجازات المحققة</div>
+             <div class="ach-section-sub">لقد حققت ${earnedList.length} إنجازاً 🎉</div>
+             <div class="ach-grid">${earnedList.map(a=>achCard(a,data,true)).join("")}</div>`;
+  }
+  if(lockedList.length > 0 && tab !== "earned"){
+    html += `<div class="ach-section-title">🔒 الإنجازات القادمة</div>
+             <div class="ach-section-sub">أكمل هذه المهام للحصول على شاراتها</div>
+             <div class="ach-grid">${lockedList.map(a=>achCard(a,data,false)).join("")}</div>`;
+  }
+  if(!html) html = '<div style="text-align:center;padding:3rem;color:rgba(255,255,255,.3)">لا توجد إنجازات في هذا التبويب</div>';
+
+  const cont = document.getElementById("ach-content");
+  if(cont) cont.innerHTML = html;
+}
+
+function achCard(ach, data, isEarned){
+  const val = ach.key === "_always" ? 1 : (data[ach.key]||0);
+  const pct = ach.key === "_always" ? 100 : Math.min(100, Math.round((val/ach.target)*100));
+  const shapeEl = ach.shape === "pentagon"
+    ? `<div class="ach-pentagon ${ach.clr}">${ach.icon}</div>`
+    : ach.shape === "diamond"
+    ? `<div class="ach-diamond ${ach.clr}">${ach.icon}</div>`
+    : `<div class="ach-circle ${ach.clr}">${ach.icon}</div>`;
+
+  return `<div class="ach-card ${isEarned?"earned":"locked"}">
+    ${isEarned?'<div class="ach-earned-check">✓</div>':''}
+    <div class="ach-badge-wrap">
+      ${shapeEl}
+      <div class="ach-shine"></div>
+    </div>
+    <div class="ach-card-name">${ach.name}</div>
+    <div class="ach-card-desc">${ach.desc}</div>
+    ${!isEarned ? `<div class="ach-card-progress">
+      <div class="ach-card-prog-bar"><div class="ach-card-prog-fill" style="width:${pct}%"></div></div>
+      <div class="ach-card-prog-lbl">${val.toLocaleString("ar")} / ${ach.target.toLocaleString("ar")}</div>
+    </div>`:''}
+  </div>`;
+}
+
+// تحديث BADGES_CONFIG ليستخدم نفس IDs
+const _origCheckBadges = window.checkAndAwardBadges;
+window.checkAndAwardBadges = async function(uid, userData){
+  const earned = userData.badges || [];
+  for(const ach of ACHIEVEMENTS){
+    if(earned.includes(ach.id)) continue;
+    if(ach.key === "_always") continue;
+    const val = userData[ach.key]||0;
+    if(val >= ach.target){
+      try{
+        const newBadges = [...earned, ach.id];
+        await setDoc(doc(db,"users",uid),{ badges: newBadges },{ merge:true });
+        showBadgeNotify({ icon: ach.icon, name: ach.name, desc: ach.desc });
+        earned.push(ach.id);
+      }catch(e){}
+    }
+  }
+};
+
+// "مرحباً بك" عند أول تسجيل
+async function awardFirstRegBadge(uid){
+  try{
+    const snap = await getDoc(doc(db,"users",uid));
+    if(snap.exists()){
+      const badges = snap.data().badges||[];
+      if(!badges.includes("first_reg")){
+        await setDoc(doc(db,"users",uid),{ badges:[...badges,"first_reg"] },{ merge:true });
+        setTimeout(()=>showBadgeNotify({ icon:"🎉", name:"مرحباً بك!", desc:"أنشأت حسابك في MangaVerse" }),2000);
+      }
+    }
+  }catch(e){}
+}
 
 window._curPage='home';
 window._filterGenre='all';
