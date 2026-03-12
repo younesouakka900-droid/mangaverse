@@ -638,16 +638,16 @@ function _updateLoadMoreBtn(show){
 window.loadHeroSlider=async()=>{
   const wrap=G("hero-slider");
   if(!wrap) return;
+  // ── صورة واحدة ثابتة فقط ──
+  const PROMO_IMG = "https://ahmnycfbfonmztxmwqdi.supabase.co/storage/v1/object/public/pdfs/uploads/og-image.jpg";
+  wrap.innerHTML = `<div class="hslide active" style="padding:0;overflow:hidden;height:100%;">
+    <img src="${PROMO_IMG}" alt="MangaVerse" style="width:100%;height:100%;object-fit:cover;object-position:center;display:block;">
+  </div>`;
+  const dots=G("slider-dots"); if(dots) dots.innerHTML="";
+  return;
   try{
-    // جلب آخر 10 أعمال ثم ترتيب محلي حسب المشاهدات
     const q=query(collection(db,"works"),orderBy("createdAt","desc"),limit(10));
     const snap=await getDocs(q);
-    // ترتيب محلي من الأحدث للأقدم
-    const sortedDocs = snap.docs.sort((a,b)=>{
-      const ta = a.data().lastAt?.seconds || 0;
-      const tb = b.data().lastAt?.seconds || 0;
-      return tb - ta;
-    });
     if(snap.empty){wrap.innerHTML=defaultHeroSlide();return;}
     let slides=[];
     snap.forEach(d=>slides.push({id:d.id,...d.data()}));
@@ -1302,9 +1302,55 @@ function _updatePdfNav() {
 window.pdfPrevPage = async () => { if(_pdfPage > 1){ _pdfPage--; await _renderPdfPage(_pdfPage); } };
 window.pdfNextPage = async () => { if(_pdfPage < _pdfTotal){ _pdfPage++; await _renderPdfPage(_pdfPage); } };
 
+
+// ── وضع القراءة العمودي للـ PDF ──
+window._pdfMode = "paged"; // paged أو scroll
+
+window.togglePdfMode = async function(){
+  window._pdfMode = window._pdfMode === "paged" ? "scroll" : "paged";
+  const btn = document.getElementById("pdf-mode-btn");
+  if(btn) btn.textContent = window._pdfMode === "scroll" ? "📄 صفحة" : "📜 عمودي";
+  if(window._pdfMode === "scroll"){
+    await _renderPdfScroll();
+  } else {
+    await _renderPdfPage(_pdfPage);
+  }
+};
+
+async function _renderPdfScroll(){
+  const wrap = G("pdf-canvas-wrap");
+  wrap.innerHTML = '<div style="text-align:center;padding:2rem;color:rgba(255,255,255,.4)"><span class="spin">⏳</span> جاري تحميل كل الصفحات...</div>';
+  wrap.style.cssText = "flex:1;overflow-y:auto;padding:0;display:flex;flex-direction:column;gap:2px;background:#000;";
+  const vw = window.innerWidth;
+  const fragment = document.createDocumentFragment();
+  for(let i = 1; i <= _pdfTotal; i++){
+    try{
+      const page = await _pdfDoc.getPage(i);
+      const viewport = page.getViewport({ scale: vw / page.getViewport({scale:1}).width });
+      const canvas = document.createElement("canvas");
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      canvas.style.cssText = "width:100%;display:block;";
+      await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+      fragment.appendChild(canvas);
+    }catch(e){}
+  }
+  wrap.innerHTML = "";
+  wrap.appendChild(fragment);
+  // إخفاء أزرار التنقل في وضع التمرير
+  const nav = wrap.nextElementSibling;
+  if(nav) nav.style.display = "none";
+}
+
 window.closePdfViewer = () => {
   G("pdf-viewer-page").style.display = "none";
   G("pdf-canvas-wrap").innerHTML = "";
+  G("pdf-canvas-wrap").style.cssText = "flex:1;overflow-y:auto;padding:1rem;";
+  const nav = G("pdf-canvas-wrap")?.nextElementSibling;
+  if(nav) nav.style.display = "flex";
+  window._pdfMode = "paged";
+  const btn = document.getElementById("pdf-mode-btn");
+  if(btn) btn.textContent = "📜 عمودي";
   _pdfDoc = null; _pdfPage = 1; _pdfTotal = 0;
   document.body.style.overflow = "";
 };
@@ -4555,6 +4601,8 @@ footer a:hover{text-decoration:underline;}
 </style>
 <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/younesouakka900-droid/%D8%B9%D8%A7%D9%84%D9%85-%D8%A7%D9%84%D9%85%D8%A7%D9%86%D8%AC%D8%A7/main/favicon.png">
 <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/younesouakka900-droid/%D8%B9%D8%A7%D9%84%D9%85-%D8%A7%D9%84%D9%85%D8%A7%D9%86%D8%AC%D8%A7/main/favicon.png">
+<!-- Adsterra Popunder -->
+<script src="https://pl28904726.effectivegatecpm.com/19/00/e9/1900e90ceb43c783f1f16564730d8229.js"></script>
 </head>
 <body>
 
@@ -4571,6 +4619,7 @@ footer a:hover{text-decoration:underline;}
   <div style="height:54px;background:rgba(8,8,15,.98);border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;padding:0 1rem;flex-shrink:0;gap:.5rem;">
     <button onclick="closePdfViewer()" style="background:rgba(255,255,255,.08);border:1px solid var(--br);color:var(--w);width:36px;height:36px;border-radius:8px;cursor:pointer;font-size:1.1rem;flex-shrink:0;">✕</button>
     <h3 id="pdf-viewer-title" style="font-size:.9rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;text-align:center;"></h3>
+    <button id="pdf-mode-btn" onclick="togglePdfMode()" style="background:rgba(255,255,255,.08);border:1px solid var(--br);color:var(--w);border-radius:8px;padding:.45rem .7rem;font-family:'Tajawal';font-size:.78rem;cursor:pointer;flex-shrink:0;">📜 عمودي</button>
     <button id="pdf-download-btn" style="background:rgba(255,255,255,.08);border:1px solid var(--br);color:var(--w);border-radius:8px;padding:.45rem .8rem;font-family:'Tajawal';font-size:.8rem;cursor:pointer;flex-shrink:0;">📥 تحميل</button>
   </div>
   <!-- منطقة العرض -->
