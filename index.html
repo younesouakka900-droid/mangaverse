@@ -427,6 +427,7 @@ window.doPublish=async()=>{
       supportUrl, audioUrl, trailerUrl,
       authorId:CU.uid, authorName:CU.displayName,
       authorAvatar:CUD?.avatarUrl||"", authorVerified:CUD?.verified||false,
+      authorPoints:CUD?.points||0,
       createdAt:serverTimestamp(),
       views:0, likes:0, bookmarkCount:0,
       rating:0, ratingCount:0, ratings:{}, comments:[]
@@ -2335,7 +2336,9 @@ window.openPublicProfile = async (uid) => {
     }
 
     // ── بيانات ──
-    G("pp-name").innerHTML = glowName(sanitize(d.name||""), d, d.verified||false);
+    const _ppPts = d.points !== undefined ? d.points : calcPoints(d);
+    const _ppEmail = d.email || (window.CU?.email) || "";
+    G("pp-name").innerHTML = glowName(sanitize(d.name||""), {...d, points:_ppPts, email:_ppEmail}, d.verified||false);
     G("pp-username").textContent   = d.username || "";
     G("pp-bio").textContent        = d.bio || "لا توجد نبذة بعد";
     G("pp-location").textContent   = d.location ? "📍 "+d.location : "";
@@ -5809,86 +5812,14 @@ body.light-mode .stab:hover{color:var(--red);}
       </div>
 
       <!-- تبويبات النوع -->
-      <div class="type-tabs" id="type-tabs" dir="rtl">
-
-        <!-- الكل -->
+            <div class="type-tabs" id="type-tabs" dir="rtl" style="position:relative;z-index:10;">
         <button class="ttab active" data-type="all" onclick="setTypeTab(this,'all')">📚 الكل</button>
-
-        <!-- مانجا -->
-        <div class="ttab-wrap" id="wrap-مانجا">
-          <button class="ttab" data-type="مانجا" onclick="toggleSubtypes(event,'مانجا')">⚔️ مانجا <span class="ttab-arrow">▾</span></button>
-          <div class="subtypes-dropdown">
-            <button class="stab" onclick="setSubType('مانجا','all')">📚 كل المانجا</button>
-            <div class="subtypes-divider"></div>
-            <button class="stab" onclick="setSubType('مانجا','أكشن')">⚔️ مانجا أكشن</button>
-            <button class="stab" onclick="setSubType('مانجا','رومانسي')">💕 مانجا رومانسية</button>
-            <button class="stab" onclick="setSubType('مانجا','فانتازيا')">🧙 مانجا فانتازيا</button>
-            <button class="stab" onclick="setSubType('مانجا','رعب')">👻 مانجا رعب</button>
-            <button class="stab" onclick="setSubType('مانجا','كوميدي')">😂 مانجا كوميدي</button>
-            <button class="stab" onclick="setSubType('مانجا','درامي')">🎭 مانجا درامية</button>
-            <button class="stab" onclick="setSubType('مانجا','خيال علمي')">🚀 مانجا خيال علمي</button>
-          </div>
-        </div>
-
-        <!-- ويبتون -->
-        <div class="ttab-wrap" id="wrap-ويبتون">
-          <button class="ttab" data-type="ويبتون" onclick="toggleSubtypes(event,'ويبتون')">📱 ويبتون <span class="ttab-arrow">▾</span></button>
-          <div class="subtypes-dropdown">
-            <button class="stab" onclick="setSubType('ويبتون','all')">📚 كل الويبتون</button>
-            <div class="subtypes-divider"></div>
-            <button class="stab" onclick="setSubType('ويبتون','أكشن')">⚔️ ويبتون أكشن</button>
-            <button class="stab" onclick="setSubType('ويبتون','رومانسي')">💕 ويبتون رومانسي</button>
-            <button class="stab" onclick="setSubType('ويبتون','فانتازيا')">🧙 ويبتون فانتازيا</button>
-            <button class="stab" onclick="setSubType('ويبتون','رعب')">👻 ويبتون رعب</button>
-            <button class="stab" onclick="setSubType('ويبتون','درامي')">🎭 ويبتون درامي</button>
-          </div>
-        </div>
-
-        <!-- رواية مصورة -->
-        <div class="ttab-wrap" id="wrap-رواية-مصورة">
-          <button class="ttab" data-type="رواية مصورة" onclick="toggleSubtypes(event,'رواية مصورة')">🎨 رواية مصورة <span class="ttab-arrow">▾</span></button>
-          <div class="subtypes-dropdown">
-            <button class="stab" onclick="setSubType('رواية مصورة','all')">📚 الكل</button>
-            <div class="subtypes-divider"></div>
-            <button class="stab" onclick="setSubType('رواية مصورة','أكشن')">⚔️ أكشن</button>
-            <button class="stab" onclick="setSubType('رواية مصورة','رومانسي')">💕 رومانسية</button>
-            <button class="stab" onclick="setSubType('رواية مصورة','فانتازيا')">🧙 فانتازيا</button>
-            <button class="stab" onclick="setSubType('رواية مصورة','غموض')">🔍 غموض</button>
-          </div>
-        </div>
-
-        <!-- رواية -->
-        <div class="ttab-wrap" id="wrap-رواية">
-          <button class="ttab" data-type="رواية" onclick="toggleSubtypes(event,'رواية')">📖 رواية <span class="ttab-arrow">▾</span></button>
-          <div class="subtypes-dropdown">
-            <button class="stab" onclick="setSubType('رواية','all')">📚 كل الروايات</button>
-            <div class="subtypes-divider"></div>
-            <button class="stab" onclick="setSubType('رواية','أكشن')">⚔️ رواية أكشن</button>
-            <button class="stab" onclick="setSubType('رواية','رومانسي')">💕 رواية رومانسية</button>
-            <button class="stab" onclick="setSubType('رواية','فانتازيا')">🧙 رواية فانتازيا</button>
-            <button class="stab" onclick="setSubType('رواية','رعب')">👻 رواية رعب</button>
-            <button class="stab" onclick="setSubType('رواية','ديستوبيا')">🌑 ديستوبيا</button>
-            <button class="stab" onclick="setSubType('رواية','خيال علمي')">🚀 خيال علمي</button>
-            <button class="stab" onclick="setSubType('رواية','درامي')">🎭 درامية</button>
-          </div>
-        </div>
-
-        <!-- كتاب -->
+        <button class="ttab" data-type="مانجا" onclick="setTypeTab(this,'مانجا')">⚔️ مانجا</button>
+        <button class="ttab" data-type="ويبتون" onclick="setTypeTab(this,'ويبتون')">📱 ويبتون</button>
+        <button class="ttab" data-type="رواية مصورة" onclick="setTypeTab(this,'رواية مصورة')">🎨 رواية مصورة</button>
+        <button class="ttab" data-type="رواية" onclick="setTypeTab(this,'رواية')">📖 رواية</button>
         <button class="ttab" data-type="كتاب" onclick="setTypeTab(this,'كتاب')">📕 كتاب</button>
-
-        <!-- مجلة -->
-        <div class="ttab-wrap" id="wrap-مجلة">
-          <button class="ttab" data-type="مجلة" onclick="toggleSubtypes(event,'مجلة')">📰 مجلة <span class="ttab-arrow">▾</span></button>
-          <div class="subtypes-dropdown">
-            <button class="stab" onclick="setSubType('مجلة','all')">📚 كل المجلات</button>
-            <div class="subtypes-divider"></div>
-            <button class="stab" onclick="setSubType('مجلة','ترفيه')">🎉 ترفيه</button>
-            <button class="stab" onclick="setSubType('مجلة','ثقافة')">📚 ثقافة</button>
-            <button class="stab" onclick="setSubType('مجلة','فن')">🎨 فن وإبداع</button>
-            <button class="stab" onclick="setSubType('مجلة','تقنية')">💻 تقنية</button>
-          </div>
-        </div>
-
+        <button class="ttab" data-type="مجلة" onclick="setTypeTab(this,'مجلة')">📰 مجلة</button>
       </div>
 
       <div class="works-grid" id="works-grid">
