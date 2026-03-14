@@ -393,7 +393,7 @@ window.doPublish=async()=>{
   if(!genre) return toast("⚠️ يرجى اختيار النوع","w");
   if(!desc)  return toast("⚠️ يرجى كتابة وصف العمل","w");
   if(!coverFile) return toast("⚠️ يرجى رفع صورة غلاف للعمل","w");
-  if(!pdfFile&&!extUrl&&pagesFiles.length===0) return toast("⚠️ يرجى رفع ملف أو صور أو إدخال رابط","w");
+  if(status !== "قريباً" && !pdfFile&&!extUrl&&pagesFiles.length===0) return toast("⚠️ يرجى رفع ملف أو صور أو إدخال رابط","w");
   setBL("btn-pub",true);
   try{
     _lastPublishTime = Date.now(); // ✅ تسجيل وقت النشر للـ Rate Limit
@@ -404,10 +404,10 @@ window.doPublish=async()=>{
     toast("⏳ جاري رفع صورة الغلاف...");
     const coverUrl = await cloudinaryUpload(watermarkedCover);
 
-    let fileUrl=extUrl, fileName="", fileType="link", pages=[];
+    let fileUrl=extUrl||"", fileName="", fileType=status==="قريباً"?"coming-soon":"link", pages=[];
 
-    // ── رفع صور الصفحات ──
-    if(pagesFiles.length>0){
+    // ── رفع صور الصفحات (فقط إذا ليس قريباً) ──
+    if(status !== "قريباً" && pagesFiles.length>0){
       toast(`⏳ جاري رفع ${pagesFiles.length} صورة...`);
       for(let i=0;i<pagesFiles.length;i++){
         const url = await cloudinaryUpload(pagesFiles[i]);
@@ -416,8 +416,8 @@ window.doPublish=async()=>{
       }
       fileType="pages";
     }
-    // ── رفع PDF مباشرة ──
-    else if(pdfFile && !extUrl){
+    // ── رفع PDF مباشرة (فقط إذا ليس قريباً) ──
+    else if(status !== "قريباً" && pdfFile && !extUrl){
       if(pdfFile.size>50*1024*1024) return toast("⚠️ PDF أكبر من 50MB — الحد الأقصى المسموح","w");
       toast("⏳ جاري رفع PDF...");
       fileUrl  = await cloudinaryUpload(pdfFile);
