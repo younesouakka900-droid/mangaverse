@@ -2426,7 +2426,7 @@ window.loadProfile=async()=>{
   if(!CU){ showPage("home"); return openModal("m-auth"); }
   const s=await getDoc(doc(db,"users",CU.uid));
   const d=s.exists()?s.data():{};
-  G("p-name").innerHTML=`${d.name||CU.displayName||""} ${d.verified?'<span class="vbadge">✦ موثق</span>':""}`;
+  const _pPts = d.points !== undefined ? d.points : calcPoints(d); G("p-name").innerHTML = glowName(sanitize(d.name||CU.displayName||""), {...d, points:_pPts, email:CU.email||""}, d.verified||false);
   G("p-user").textContent=d.username||"@user";
   G("p-bio").textContent=d.bio||"لا توجد نبذة بعد";
   G("p-loc").textContent=d.location||"غير محدد";
@@ -2934,7 +2934,11 @@ function updateNavUI(on){
       if(CUD?.avatarUrl){ sbAv.style.backgroundImage=`url(${CUD.avatarUrl})`; sbAv.style.backgroundSize="cover"; sbAv.textContent=""; }
       else { sbAv.textContent=initials; }
     }
-    const sbUname=G("sb-uname"); if(sbUname) sbUname.textContent=CU.displayName||"مستخدم";
+    const sbUname=G("sb-uname"); 
+    if(sbUname){
+      const _sbPts = window.CUD?.points !== undefined ? window.CUD.points : calcPoints(window.CUD||{});
+      sbUname.innerHTML = glowName(CU.displayName||"مستخدم", {...(window.CUD||{}), points:_sbPts, email:CU.email||""});
+    }
     const sbEmail=G("sb-email"); if(sbEmail) sbEmail.textContent=CU.email||"";
   } else {
     const navAv=G("nav-av"); if(navAv){ navAv.style.backgroundImage="none"; navAv.textContent="☰"; }
@@ -4569,27 +4573,41 @@ footer a:hover{text-decoration:underline;}
 /* ══ توهج الاسم حسب المستوى ══ */
 .uname-bronze{
   color:#cd7f32 !important;
+  -webkit-text-fill-color:#cd7f32 !important;
   text-shadow:0 0 8px rgba(205,127,50,.4);
+  display:inline-block;
 }
 .uname-silver{
-  background:linear-gradient(135deg,#c0c0c0,#e8e8e8,#a0a0a0);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  background:linear-gradient(135deg,#c0c0c0,#e8e8e8,#a0a0a0) !important;
+  -webkit-background-clip:text !important;
+  -webkit-text-fill-color:transparent !important;
+  background-clip:text !important;
+  color:transparent !important;
+  display:inline-block;
   filter:drop-shadow(0 0 6px rgba(192,192,192,.5));
 }
 .uname-gold{
-  background:linear-gradient(135deg,#f5a623,#f7d060,#e8821a);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  background:linear-gradient(135deg,#f5a623,#f7d060,#e8821a) !important;
+  -webkit-background-clip:text !important;
+  -webkit-text-fill-color:transparent !important;
+  background-clip:text !important;
+  color:transparent !important;
   filter:drop-shadow(0 0 8px rgba(245,166,35,.6));
   animation:goldShimmer 3s ease-in-out infinite;
+  display:inline-block;
 }
 @keyframes goldShimmer{
   0%,100%{filter:drop-shadow(0 0 6px rgba(245,166,35,.5))}
   50%{filter:drop-shadow(0 0 14px rgba(245,166,35,.9))}
 }
 .uname-diamond{
-  background:linear-gradient(135deg,#667eea,#764ba2,#a78bfa,#60a5fa);
-  background-size:200% 200%;
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  background:linear-gradient(135deg,#667eea,#764ba2,#a78bfa,#60a5fa) !important;
+  background-size:200% 200% !important;
+  -webkit-background-clip:text !important;
+  -webkit-text-fill-color:transparent !important;
+  background-clip:text !important;
+  color:transparent !important;
+  display:inline-block;
   animation:diamondFlow 3s ease infinite, diamondGlow 2s ease-in-out infinite;
 }
 @keyframes diamondFlow{
@@ -4600,9 +4618,13 @@ footer a:hover{text-decoration:underline;}
   50%{filter:drop-shadow(0 0 18px rgba(96,165,250,.9))}
 }
 .uname-admin{
-  background:linear-gradient(135deg,#e8192c,#ff6b35,#e8192c);
-  background-size:200% 200%;
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  background:linear-gradient(135deg,#e8192c,#ff6b35,#e8192c) !important;
+  background-size:200% 200% !important;
+  -webkit-background-clip:text !important;
+  -webkit-text-fill-color:transparent !important;
+  background-clip:text !important;
+  color:transparent !important;
+  display:inline-block;
   animation:adminPulse 2s ease infinite;
 }
 @keyframes adminPulse{
@@ -5884,7 +5906,7 @@ body.light-mode .stab:hover{color:var(--red);}
         <div class="av-badge" style="font-size:.85rem" id="av-badge-icon">🌱</div>
       </div>
       <div class="p-info">
-        <div class="p-name" id="p-name">YOUNES OUAKKA</div>
+        <div class="p-name" id="p-name" style="color:inherit"></div>
         <div class="p-user" id="p-user">@younes_manga</div>
         <div class="p-bio" id="p-bio">رسام مانجا محترف 🎨</div>
         <div class="p-meta">
@@ -6005,7 +6027,7 @@ body.light-mode .stab:hover{color:var(--red);}
       <!-- اسم + متابعة -->
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-top:3.2rem;margin-bottom:.5rem;flex-wrap:wrap;gap:.8rem">
         <div>
-          <div style="font-size:1.3rem;font-weight:900" id="pp-name"></div>
+          <div style="font-size:1.3rem;font-weight:900;color:inherit" id="pp-name"></div>
           <div style="font-size:.83rem;color:var(--mu);margin-bottom:.4rem" id="pp-username"></div>
           <div id="pp-badge-display"></div>
         </div>
