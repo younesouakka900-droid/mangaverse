@@ -37,6 +37,16 @@ const app  = initializeApp(FB);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 
+// ─── Global State ───
+let CU=null, CUD=null;
+window.CU=null; window.CUD=null; window._curPage="home";
+
+// ─── Auth Ready State ───
+let _authReady = false;
+let _authReadyResolve = null;
+const _authReadyPromise = new Promise(r => { _authReadyResolve = r; });
+window.addEventListener('load', ()=> _authReadyPromise.then(handleRoute));
+
 // ─── Supabase Storage Upload ───
 const SUPA_URL  = "https://ahmnycfbfonmztxmwqdi.supabase.co";
 const SUPA_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFobW55Y2ZiZm9ubXp0eG13cWRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjA5NDIsImV4cCI6MjA4ODgzNjk0Mn0.OT3KRneaviAoLb50ZhUe58B4tuX3BD0QODkAgBFcbWY";
@@ -103,8 +113,6 @@ const ADMIN_EMAIL = "younassouakka@gmail.com";
 function isAdmin(){ return CU && CU.email === ADMIN_EMAIL; }
 window.isAdmin = isAdmin;
 
-let CU=null, CUD=null;
-window.CU=null; window.CUD=null; window._curPage="home";
 
 // ─── AUTH STATE ───
 onAuthStateChanged(auth, async user=>{
@@ -6197,10 +6205,7 @@ async function handleRoute(){
 window.addEventListener('hashchange', handleRoute);
 // شغّل الراوتر بعد تحميل الصفحة
 // ✅ انتظر Firebase Auth بدلاً من setTimeout ثابت
-let _authReady = false;
-let _authReadyResolve = null;
-const _authReadyPromise = new Promise(r => { _authReadyResolve = r; });
-window.addEventListener('load', ()=> _authReadyPromise.then(handleRoute));
+
 function openModal(id){document.getElementById(id)?.classList.add('open');document.body.style.overflow='hidden';}
 function closeModal(id){
   document.getElementById(id)?.classList.remove('open');
