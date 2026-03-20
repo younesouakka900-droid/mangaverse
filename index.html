@@ -315,8 +315,8 @@ window.deleteAccount = async () => {
     // حذف الإشعارات
     const nSnap = await getDocs(query(collection(db,"notifications"), where("toUid","==",uid)));
     await Promise.all(nSnap.docs.map(d => deleteDoc(d.ref))).catch(()=>{});
-    // حذف تقدم القراءة
-    const rSnap = await getDocs(query(collection(db,"readProgress")));
+    // ✅ إصلاح الأداء: جلب تقدم القراءة الخاص بالمستخدم فقط
+    const rSnap = await getDocs(query(collection(db,"readProgress"), where("uid","==",uid)));
     // حذف حساب Firebase Auth
     await CU.delete();
     toast("✅ تم حذف حسابك بنجاح");
@@ -1514,19 +1514,29 @@ window.openAdminDashboard=async()=>{
   const modal=G("m-admin");
   if(!modal) return;
   toast("⏳ جاري تحميل بيانات الإدارة...");
-  // إحصائيات
+  // ✅ إصلاح الأداء: وثيقة إحصائيات مركزية بدل جلب كل الكوليكشن
   try{
-    const [wSnap,uSnap,nSnap]=await Promise.all([
-      getDocs(collection(db,"works")),
-      getDocs(collection(db,"users")),
-      getDocs(collection(db,"notifications"))
-    ]);
-    const adwc=G("adm-works-count"); if(adwc) adwc.textContent=wSnap.size;
-    const aduc=G("adm-users-count"); if(aduc) aduc.textContent=uSnap.size;
-    const adnc=G("adm-notifs-count"); if(adnc) adnc.textContent=nSnap.size;
+    const metaSnap = await getDoc(doc(db,"meta","stats")).catch(()=>null);
+    const adwc=G("adm-works-count");
+    const aduc=G("adm-users-count");
+    const adnc=G("adm-notifs-count");
+    if(metaSnap && metaSnap.exists()){
+      const s = metaSnap.data();
+      if(adwc) adwc.textContent = (s.totalWorks||0).toLocaleString("ar");
+      if(aduc) aduc.textContent = (s.totalUsers||0).toLocaleString("ar");
+      if(adnc) adnc.textContent = (s.totalNotifs||0).toLocaleString("ar");
+    } else {
+      const [wSnap,uSnap] = await Promise.all([
+        getDocs(query(collection(db,"works"), limit(100))),
+        getDocs(query(collection(db,"users"), limit(100)))
+      ]);
+      if(adwc) adwc.textContent = wSnap.size+(wSnap.size===100?"+":"");
+      if(aduc) aduc.textContent = uSnap.size+(uSnap.size===100?"+":"");
+      if(adnc) adnc.textContent = "—";
+    }
   }catch(e){}
-  // جلب كل الأعمال
-  const snap=await getDocs(query(collection(db,"works"),orderBy("createdAt","desc")));
+  // ✅ إصلاح الأداء: جلب آخر 50 فقط بدل كل الأعمال
+  const snap=await getDocs(query(collection(db,"works"),orderBy("createdAt","desc"),limit(50)));
   const worksHtml=snap.empty?'<p style="color:var(--mu)">لا توجد أعمال</p>':snap.docs.map(d=>{
     const w=d.data();
     return `<div class="admin-row">
@@ -7187,15 +7197,27 @@ document.addEventListener('click', () => {
 });
 
 // ── تحميل إحصائيات من نحن ──
+// ✅ إصلاح الأداء: بدل جلب 1000 وثيقة، نستخدم وثيقة عداد مركزية واحدة
 async function loadAboutStats(){
   try{
-    const [worksSnap, usersSnap] = await Promise.all([
-      getDocs(query(collection(db,"works"), limit(1000))),
-      getDocs(query(collection(db,"users"), limit(1000)))
-    ]);
-    const totalWorks = worksSnap.size;
-    const totalUsers = usersSnap.size;
-    const totalViews = worksSnap.docs.reduce((s,d)=>s+(d.data().views||0),0);
+    // جلب وثيقة إحصائيات مركزية بدل limit(1000)
+    const statsDoc = await getDoc(doc(db,"meta","stats"));
+    let totalWorks = 0, totalUsers = 0, totalViews = 0;
+    if(statsDoc.exists()){
+      const s = statsDoc.data();
+      totalWorks = s.totalWorks || 0;
+      totalUsers = s.totalUsers || 0;
+      totalViews = s.totalViews || 0;
+    } else {
+      // fallback: جلب عينة صغيرة فقط إذا لم توجد وثيقة الإحصائيات
+      const [worksSnap, usersSnap] = await Promise.all([
+        getDocs(query(collection(db,"works"), limit(50))),
+        getDocs(query(collection(db,"users"), limit(50)))
+      ]);
+      totalWorks = worksSnap.size;
+      totalUsers = usersSnap.size;
+      totalViews = worksSnap.docs.reduce((s,d)=>s+(d.data().views||0),0);
+    }
     const fmt = n => n >= 1000 ? (n/1000).toFixed(1)+'K' : n.toString();
     const w=document.getElementById("about-stat-works"); if(w) w.textContent=fmt(totalWorks);
     const u=document.getEle
