@@ -143,6 +143,8 @@ function clearProfileUI(){
 
 // ─── REGISTER ───
 window.doRegister=async()=>{
+  const cb=document.getElementById('reg-terms-cb');
+  if(cb&&!cb.checked) return toast('⚠️ يجب الموافقة على شروط الاستخدام أولاً','w');
   const name=V("r-name"),email=V("r-email"),pass=V("r-pass");
   if(!name||!email||!pass) return toast("⚠️ ملء جميع الحقول مطلوب","w");
   if(pass.length<6) return toast("⚠️ كلمة المرور 6 أحرف على الأقل","w");
@@ -172,6 +174,8 @@ window.doLogin=async()=>{
   catch(e){ toast("❌ الإيميل أو كلمة المرور خاطئة","e"); }
   setBL("btn-login",false);
 };
+
+window.openTermsModal=()=>openModal('m-terms');
 
 window.doLogout=async()=>{
   await signOut(auth);
@@ -772,6 +776,51 @@ window.closePdfViewer=()=>{
 };
 
 // ─── BOOKMARK ───
+// ─── نظام الإبلاغ ───
+const REPORT_REASONS = [
+  "محتوى مسروق أو منتهك لحقوق الملكية",
+  "محتوى غير لائق أو مسيء",
+  "محتوى مضلل أو احتيالي",
+  "خطاب كراهية أو تمييز",
+  "عنف مفرط",
+  "محتوى للبالغين بدون تصنيف",
+  "سبب آخر",
+];
+
+window.openReportModal = (workId) => {
+  if(!CU) return openModal("m-auth");
+  window._reportWorkId = workId;
+  const list = document.getElementById("report-reasons-list");
+  if(list){
+    list.innerHTML = REPORT_REASONS.map((r,i) => 
+      `<label style="display:flex;align-items:center;gap:.6rem;padding:.5rem;border-radius:8px;cursor:pointer;border:1px solid var(--br);margin-bottom:.4rem">
+        <input type="radio" name="report-reason" value="${r}" style="accent-color:var(--red)"> 
+        <span style="font-size:.88rem;color:var(--w)">${r}</span>
+      </label>`
+    ).join("");
+  }
+  openModal("m-report");
+};
+
+window.submitReport = async () => {
+  const sel = document.querySelector('input[name="report-reason"]:checked');
+  if(!sel) return toast("⚠️ اختر سبب الإبلاغ","w");
+  const note = document.getElementById("report-note")?.value?.trim()||"";
+  try {
+    await addDoc(collection(db,"reports"),{
+      workId: window._reportWorkId||"",
+      reporterId: CU.uid,
+      reporterName: CU.displayName||"",
+      reason: sel.value,
+      note,
+      status: "pending",
+      createdAt: serverTimestamp()
+    });
+    closeModal("m-report");
+    toast("✅ تم إرسال البلاغ، سنراجعه قريباً");
+  } catch(e){ toast("❌ فشل الإرسال","e"); }
+};
+
 window.toggleBookmark=async id=>{
   if(!CU) return openModal("m-auth");
   const isB=CUD?.bookmarks?.includes(id);
@@ -1053,6 +1102,46 @@ window.markNotifsRead = async () => {
 window.loadNotifications = () => markNotifsRead();
 
 // ─── PROFILE ───
+// ─── نظام الرتب والشارات ───
+const BADGES = [
+  { id:"god",      label:"إله المانجا",  icon:"⚡", color:"#FF0080", pts:50000 },
+  { id:"myth",     label:"أسطورة",       icon:"👑", color:"#FFD700", pts:20000 },
+  { id:"immortal", label:"خالد",         icon:"♾️", color:"#FF4500", pts:10000 },
+  { id:"legend",   label:"أسطوري",       icon:"🌟", color:"#FF6B00", pts:5000  },
+  { id:"hero",     label:"بطل",          icon:"⚔️", color:"#9B30FF", pts:2000  },
+  { id:"elite",    label:"محارب نخبة",   icon:"💎", color:"#00D4FF", pts:1000  },
+  { id:"warrior",  label:"محارب",        icon:"🔥", color:"#FF6B35", pts:500   },
+  { id:"student",  label:"متدرب",        icon:"📖", color:"#00BCD4", pts:200   },
+  { id:"reader",   label:"قارئ",         icon:"⭐", color:"#C0C0C0", pts:50    },
+  { id:"new",      label:"وافد جديد",    icon:"🌱", color:"#4CAF50", pts:0     },
+];
+
+function getBadge(pts){
+  for(const b of BADGES){ if(pts >= b.pts) return b; }
+  return BADGES[BADGES.length-1];
+}
+
+function calcPoints(d){
+  return (d.worksCount||0)*50 + Math.floor((d.totalViews||0)/10)*5 
+       + (d.followersCount||0)*10 + (d.totalRatings||0)*3 + (d.totalComments||0)*2;
+}
+
+function updateAvatarRing(pts){
+  const ring = document.querySelector(".p-av-ring");
+  if(!ring) return;
+  const badge = getBadge(pts||0);
+  ring.className = "p-av-ring ring-" + badge.id;
+  const badgeEl = document.getElementById("p-av-badge");
+  if(badgeEl) badgeEl.textContent = badge.icon;
+  const rankEl = document.getElementById("p-rank-label");
+  if(rankEl){ rankEl.textContent = badge.label; rankEl.style.color = badge.color; }
+}
+
+function getBadgePill(pts){
+  const b = getBadge(pts||0);
+  return `<span style="background:${b.color}22;border:1px solid ${b.color}66;color:${b.color};font-size:.7rem;font-weight:800;padding:2px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:.3rem">${b.icon} ${b.label}</span>`;
+}
+
 window.loadProfile=async()=>{
   if(!CU){ showPage("home"); return openModal("m-auth"); }
   const s=await getDoc(doc(db,"users",CU.uid));
@@ -1071,6 +1160,11 @@ window.loadProfile=async()=>{
   G("stat-bks").textContent=d.totalBookmarks||0;
   if(d.avatarUrl) setAvatarUI(d.avatarUrl);
   if(d.coverUrl) setCoverUI(d.coverUrl);
+  // تحديث إطار الرتبة
+  const pts = calcPoints(d);
+  updateAvatarRing(pts);
+  const ptEl = document.getElementById("p-points-val");
+  if(ptEl) ptEl.textContent = pts + " نقطة";
   // social links
   const sc=d.social||{};
   const socialBox=G("p-social-links");
@@ -1675,6 +1769,12 @@ footer a:hover{text-decoration:underline;}
       <input class="mi" id="r-name" type="text" placeholder="الاسم الكامل">
       <input class="mi" id="r-email" type="email" placeholder="البريد الإلكتروني">
       <input class="mi" id="r-pass" type="password" placeholder="كلمة المرور (6 أحرف على الأقل)">
+      <div style="display:flex;align-items:flex-start;gap:.6rem;margin:.5rem 0;font-size:.82rem;color:var(--mu)">
+        <input type="checkbox" id="reg-terms-cb" style="margin-top:3px;accent-color:var(--red);cursor:pointer">
+        <label for="reg-terms-cb" style="cursor:pointer;line-height:1.4">
+          أوافق على <span onclick="openTermsModal()" style="color:var(--red);cursor:pointer;text-decoration:underline">شروط الاستخدام وسياسة حقوق الملكية</span>
+        </label>
+      </div>
       <button class="msub" id="btn-reg" onclick="doRegister()">🚀 إنشاء الحساب</button>
     </div>
   </div>
@@ -2235,5 +2335,28 @@ window._curPage='home';
 window._filterGenre='all';
 window._sliderIdx=0; window._sliderLen=0;
 </script>
+
+<!-- TERMS MODAL -->
+<div class="mo" id="m-terms">
+  <div class="md" style="max-height:80vh;overflow-y:auto">
+    <div class="mh">
+      <h2>📜 شروط الاستخدام وسياسة حقوق الملكية</h2>
+      <button class="mclose" onclick="closeModal('m-terms')">✕</button>
+    </div>
+    <div style="font-size:.88rem;color:var(--mu);line-height:1.8;direction:rtl;padding:.5rem 0">
+      <h3 style="color:var(--w);font-size:1rem;margin:1rem 0 .4rem">1. حقوق الملكية الفكرية</h3>
+      <p>جميع الأعمال المنشورة على MangaVerse هي ملك حصري لأصحابها. يُحظر نسخ أو توزيع أو إعادة نشر أي محتوى دون إذن صريح من صاحب العمل.</p>
+      <h3 style="color:var(--w);font-size:1rem;margin:1rem 0 .4rem">2. مسؤولية المبدع</h3>
+      <p>بنشر عملك على المنصة، تؤكد أنك صاحب الحقوق الكاملة لهذا العمل أو أن لديك إذناً قانونياً بنشره. MangaVerse غير مسؤولة عن أي انتهاك لحقوق الملكية.</p>
+      <h3 style="color:var(--w);font-size:1rem;margin:1rem 0 .4rem">3. المحتوى المحظور</h3>
+      <p>يُمنع نشر أي محتوى يحتوي على: مواد للبالغين دون تصنيف مناسب، خطاب كراهية، عنف مفرط، أو أي محتوى ينتهك القوانين المحلية والدولية.</p>
+      <h3 style="color:var(--w);font-size:1rem;margin:1rem 0 .4rem">4. حقوق المنصة</h3>
+      <p>تحتفظ MangaVerse بحق إزالة أي محتوى يخالف هذه الشروط دون إشعار مسبق.</p>
+      <h3 style="color:var(--w);font-size:1rem;margin:1rem 0 .4rem">5. الخصوصية</h3>
+      <p>نحترم خصوصيتك. البيانات المجمعة تُستخدم فقط لتحسين تجربة المستخدم ولن تُباع لأطراف ثالثة.</p>
+      <button onclick="closeModal('m-terms')" style="margin-top:1rem;background:var(--red);border:none;color:#fff;padding:.7rem 2rem;border-radius:10px;font-family:'Tajawal';font-size:.9rem;cursor:pointer;font-weight:700;width:100%">✅ فهمت وأوافق</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
