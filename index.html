@@ -3116,6 +3116,74 @@ async function awardFirstRegBadge(uid){
   }catch(e){}
 }
 
+// ══════════════════════════════
+// 📖 READER UPGRADE v2 — JS
+// ══════════════════════════════
+
+window._readerZoomLevel = 2;
+const _ZOOM_CLASSES = ["zoom-90","zoom-100","zoom-100","zoom-110","zoom-full"];
+const _ZOOM_LABELS  = ["90%","100%","100%","110%","120%"];
+
+window.readerZoom = (dir) => {
+  const cnt = document.getElementById("reader-content");
+  if(!cnt) return;
+  window._readerZoomLevel = Math.max(0, Math.min(4, window._readerZoomLevel + dir));
+  _ZOOM_CLASSES.forEach(c => cnt.classList.remove(c));
+  cnt.classList.add(_ZOOM_CLASSES[window._readerZoomLevel]);
+  const lbl = document.getElementById("rtb-zoom-lbl");
+  if(lbl) lbl.textContent = _ZOOM_LABELS[window._readerZoomLevel];
+};
+
+window.readerZoomReset = () => { window._readerZoomLevel = 1; readerZoom(0); };
+
+window._readerMode = "dark";
+window.readerToggleMode = () => {
+  const rd = document.getElementById("reader-page");
+  if(!rd) return;
+  window._readerMode = window._readerMode === "dark" ? "day" : "dark";
+  rd.classList.toggle("day-mode", window._readerMode === "day");
+  const btn = document.getElementById("rtb-mode");
+  if(btn) btn.textContent = window._readerMode === "day" ? "🌙 ليلي" : "☀️ نهاري";
+};
+
+window.readerScrollTop = () => {
+  const cnt = document.getElementById("reader-content");
+  if(cnt) cnt.scrollTo({top:0,behavior:"smooth"});
+};
+
+document.addEventListener("click", (e) => {
+  const rd = document.getElementById("reader-page");
+  if(!rd || rd.style.display === "none") return;
+  if(e.target.closest("#reader-toolbar") || e.target.closest(".reader-nav") || e.target.closest("#reader-resume-btn")) return;
+  rd.classList.toggle("show-toolbar");
+});
+
+document.addEventListener("keydown", (e) => {
+  const rd = document.getElementById("reader-page");
+  if(!rd || rd.style.display === "none") return;
+  if(e.key === "Escape")     { closeReader(); }
+  if(e.key === "+" || e.key === "=") { readerZoom(1); }
+  if(e.key === "-")          { readerZoom(-1); }
+  if(e.key === "ArrowDown")  { document.getElementById("reader-content")?.scrollBy({top:300,behavior:"smooth"}); }
+  if(e.key === "ArrowUp")    { document.getElementById("reader-content")?.scrollBy({top:-300,behavior:"smooth"}); }
+  if(e.key === "Home")       { readerScrollTop(); }
+});
+
+const _origOpenReader = window.openReader;
+window.openReader = async (w) => {
+  window._readerZoomLevel = 2;
+  window._readerMode = "dark";
+  const rd = document.getElementById("reader-page");
+  if(rd){
+    rd.classList.remove("day-mode","show-toolbar");
+    const cnt = document.getElementById("reader-content");
+    if(cnt) ["zoom-90","zoom-100","zoom-110","zoom-full"].forEach(c=>cnt.classList.remove(c));
+    const lbl = document.getElementById("rtb-zoom-lbl");
+    if(lbl) lbl.textContent = "100%";
+  }
+  if(_origOpenReader) return _origOpenReader(w);
+};
+
 </script>
 
 <style>
@@ -4769,6 +4837,35 @@ body.light-mode .stab:hover{color:var(--red);}
   .about-hero-title{font-size:2.5rem;}
 }
 
+/* ══════════════════════════════
+   📖 READER UPGRADE v2
+══════════════════════════════ */
+
+.reader-nav{height:56px;background:rgba(5,5,12,.97)!important;border-bottom:1px solid rgba(232,25,44,.2)!important;backdrop-filter:blur(20px);padding:0 1.25rem!important;}
+.reader-nav h3{font-size:.9rem!important;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#reader-content{background:#0a0a0a!important;scroll-behavior:smooth;}
+.reader-img{max-width:720px!important;width:100%!important;display:block;transition:opacity .3s ease;}
+
+#reader-toolbar{position:fixed;bottom:0;left:0;right:0;height:52px;background:rgba(5,5,12,.97);border-top:1px solid rgba(232,25,44,.15);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;gap:.75rem;z-index:10001;transform:translateY(100%);transition:transform .3s ease;}
+#reader-page.show-toolbar #reader-toolbar{transform:translateY(0);}
+.rtb-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:#fff;border-radius:8px;padding:.4rem .8rem;font-size:.8rem;cursor:pointer;transition:all .2s;font-family:"Tajawal",sans-serif;display:flex;align-items:center;gap:.3rem;white-space:nowrap;}
+.rtb-btn:hover{background:rgba(232,25,44,.15);border-color:rgba(232,25,44,.4);color:#e8192c;}
+.rtb-btn.active{background:rgba(232,25,44,.2);border-color:rgba(232,25,44,.5);color:#e8192c;}
+
+#reader-page.day-mode{background:#f0f0f0!important;}
+#reader-page.day-mode #reader-content{background:#e8e8e8!important;}
+#reader-page.day-mode .reader-nav{background:rgba(255,255,255,.97)!important;border-bottom-color:rgba(0,0,0,.1)!important;}
+#reader-page.day-mode .reader-nav h3{color:#111;}
+#reader-page.day-mode #reader-toolbar{background:rgba(255,255,255,.97);border-top-color:rgba(0,0,0,.1);}
+#reader-page.day-mode .rtb-btn{color:#333;border-color:rgba(0,0,0,.15);background:rgba(0,0,0,.05);}
+
+#reader-content.zoom-90 .reader-img{max-width:580px!important;}
+#reader-content.zoom-100 .reader-img{max-width:720px!important;}
+#reader-content.zoom-110 .reader-img{max-width:840px!important;}
+#reader-content.zoom-full .reader-img{max-width:100%!important;}
+
+#reader-content{padding-bottom:60px!important;}
+
 </style>
 <link rel="manifest" href="/manifest.json">
 <meta name="mobile-web-app-capable" content="yes">
@@ -4836,6 +4933,17 @@ body.light-mode .stab:hover{color:var(--red);}
     <span style="color:var(--red);font-size:.8rem;font-weight:800">←</span>
   </div>
   <div id="reader-content"></div>
+  <!-- شريط أدوات القارئ -->
+  <div id="reader-toolbar">
+    <button class="rtb-btn" id="rtb-zoom-out" onclick="readerZoom(-1)">🔍−</button>
+    <button class="rtb-btn" id="rtb-zoom-lbl" onclick="readerZoomReset()" style="min-width:48px;justify-content:center">100%</button>
+    <button class="rtb-btn" id="rtb-zoom-in"  onclick="readerZoom(1)">🔍+</button>
+    <div style="width:1px;height:24px;background:rgba(255,255,255,.1)"></div>
+    <button class="rtb-btn" id="rtb-mode" onclick="readerToggleMode()">☀️ نهاري</button>
+    <div style="width:1px;height:24px;background:rgba(255,255,255,.1)"></div>
+    <button class="rtb-btn" onclick="readerScrollTop()">⬆️ الأعلى</button>
+    <button class="rtb-btn" onclick="closeReader()">✕ إغلاق</button>
+  </div>
 </div>
 
 <!-- AUTH MODAL -->
@@ -5441,7 +5549,7 @@ body.light-mode .stab:hover{color:var(--red);}
         <div style="background:var(--s2);border:1px solid var(--br);border-radius:12px;padding:1.3rem;text-align:center;margin-top:1rem;">
           <p style="font-weight:800;font-size:.95rem;margin-bottom:.4rem">📧 تواصل مع الإدارة</p>
           <p style="font-size:.83rem;color:var(--mu);margin-bottom:.7rem">إذا كنت صاحب حقوق ملكية وتجد محتوى منتهكاً، تواصل معنا فوراً.</p>
-          <a href="mailto:younassouakka@gmail.com" style="color:var(--red);font-weight:700;font-size:.88rem">younassouakka@gmail.com</a>
+          <a href="/cdn-cgi/l/email-protection#f78e9882999684849882969c9c96b7909a969e9bd994989a" style="color:var(--red);font-weight:700;font-size:.88rem"><span class="__cf_email__" data-cfemail="97eef8e2f9f6e4e4f8e2f6fcfcf6d7f0faf6fefbb9f4f8fa">[email&#160;protected]</span></a>
         </div>
       </div>
     </div>
@@ -5571,7 +5679,7 @@ body.light-mode .stab:hover{color:var(--red);}
       <div style="font-size:1.5rem;margin-bottom:.5rem">📬</div>
       <div style="font-weight:800;font-size:1rem;margin-bottom:.4rem">تواصل معنا</div>
       <p>هل لديك اقتراح أو تريد الانضمام إلى فريق MangaVerse؟</p>
-      <a href="mailto:younassouakka@gmail.com" class="contact-btn">✉️ راسلنا</a>
+      <a href="/cdn-cgi/l/email-protection#c1b8aeb4afa0b2b2aeb4a0aaaaa081a6aca0a8adefa2aeac" class="contact-btn">✉️ راسلنا</a>
     </div>
   </div>
 
@@ -6136,7 +6244,7 @@ body.light-mode .stab:hover{color:var(--red);}
   </div>
 </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 function G(id){return document.getElementById(id);}
 function showPage(n){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -6973,14 +7081,4 @@ async function loadAboutStats(){
     const totalViews = worksSnap.docs.reduce((s,d)=>s+(d.data().views||0),0);
     const fmt = n => n >= 1000 ? (n/1000).toFixed(1)+'K' : n.toString();
     const w=document.getElementById("about-stat-works"); if(w) w.textContent=fmt(totalWorks);
-    const u=document.getElementById("about-stat-users"); if(u) u.textContent=fmt(totalUsers);
-    const v=document.getElementById("about-stat-views"); if(v) v.textContent=fmt(totalViews);
-  }catch(e){}
-}
-
-window._curPage='home';
-window._filterGenre='all';
-window._sliderIdx=0; window._sliderLen=0;
-</script>
-</body>
-</html>
+    const u=document.getEle
