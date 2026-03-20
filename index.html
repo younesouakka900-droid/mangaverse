@@ -1377,7 +1377,11 @@ window.toggleReaderComments = () => {
 window.loadChapterComments = async () => {
   if(!_currentChapterId) return;
   const list = G("reader-comments-list");
-  list.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,.3);font-size:.85rem;padding:1rem">⏳ جاري التحميل...</div>';
+  list.innerHTML = "";
+  const loading = document.createElement("div");
+  loading.style.cssText = "text-align:center;color:rgba(255,255,255,.3);font-size:.85rem;padding:1rem";
+  loading.textContent = "⏳ جاري التحميل...";
+  list.appendChild(loading);
   try {
     const snap = await getDocs(query(
       collection(db, "chapterComments"),
@@ -1385,39 +1389,80 @@ window.loadChapterComments = async () => {
       orderBy("createdAt", "desc"),
       limit(50)
     ));
-    const count = snap.size;
     const btn = G("reader-comment-count");
-    if(btn) btn.textContent = count;
+    if(btn) btn.textContent = snap.size;
+    list.innerHTML = "";
     if(snap.empty){
-      list.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,.25);font-size:.85rem;padding:2rem">لا يوجد تعليقات بعد — كن أول من يعلّق! 🌟</div>';
+      const empty = document.createElement("div");
+      empty.style.cssText = "text-align:center;color:rgba(255,255,255,.25);font-size:.85rem;padding:2rem";
+      empty.textContent = "لا يوجد تعليقات بعد — كن أول من يعلّق! 🌟";
+      list.appendChild(empty);
       return;
     }
-    list.innerHTML = "";
     snap.forEach(d => {
       const c = d.data();
       const time = c.createdAt?.toDate ? c.createdAt.toDate().toLocaleDateString("ar-SA") : "";
       const isOwn = CU && c.userId === CU.uid;
       const div = document.createElement("div");
       div.style.cssText = "background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:.75rem 1rem;";
-      div.innerHTML = `
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem">
-          <div style="display:flex;align-items:center;gap:.5rem">
-            <div style="width:28px;height:28px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;color:#fff;flex-shrink:0">${(c.userName||"؟")[0]}</div>
-            <span style="font-size:.85rem;font-weight:700;color:#f0f0f0">${c.userName||"مجهول"}</span>
-            <span style="font-size:.72rem;color:rgba(255,255,255,.3)">${time}</span>
-          </div>
-          ${isOwn ? `<button onclick="deleteChapterComment('${d.id}')" style="background:none;border:none;color:rgba(255,50,50,.5);font-size:.8rem;cursor:pointer">🗑</button>` : ""}
-        </div>
-        <p style="margin:0;font-size:.88rem;color:rgba(255,255,255,.8);line-height:1.6;direction:rtl">${c.text||""}</p>
-        <div style="display:flex;align-items:center;gap:.5rem;margin-top:.5rem">
-          <button onclick="likeChapterComment('${d.id}',this)" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:.8rem;cursor:pointer;padding:0">
-            ❤️ <span class="cmt-likes">${c.likes||0}</span>
-          </button>
-        </div>`;
+      
+      // صف العنوان
+      const header = document.createElement("div");
+      header.style.cssText = "display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem";
+      
+      const userInfo = document.createElement("div");
+      userInfo.style.cssText = "display:flex;align-items:center;gap:.5rem";
+      
+      const avatar = document.createElement("div");
+      avatar.style.cssText = "width:28px;height:28px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;color:#fff;flex-shrink:0";
+      avatar.textContent = (c.userName||"؟")[0];
+      
+      const name = document.createElement("span");
+      name.style.cssText = "font-size:.85rem;font-weight:700;color:#f0f0f0";
+      name.textContent = c.userName||"مجهول";
+      
+      const timeEl = document.createElement("span");
+      timeEl.style.cssText = "font-size:.72rem;color:rgba(255,255,255,.3)";
+      timeEl.textContent = time;
+      
+      userInfo.appendChild(avatar);
+      userInfo.appendChild(name);
+      userInfo.appendChild(timeEl);
+      header.appendChild(userInfo);
+      
+      if(isOwn){
+        const delBtn = document.createElement("button");
+        delBtn.style.cssText = "background:none;border:none;color:rgba(255,50,50,.5);font-size:.8rem;cursor:pointer";
+        delBtn.textContent = "🗑";
+        delBtn.onclick = () => deleteChapterComment(d.id);
+        header.appendChild(delBtn);
+      }
+      
+      // نص التعليق
+      const txt = document.createElement("p");
+      txt.style.cssText = "margin:.4rem 0;font-size:.88rem;color:rgba(255,255,255,.8);line-height:1.6;direction:rtl";
+      txt.textContent = c.text||"";
+      
+      // زر الإعجاب
+      const likeRow = document.createElement("div");
+      likeRow.style.cssText = "display:flex;align-items:center;gap:.5rem;margin-top:.5rem";
+      const likeBtn = document.createElement("button");
+      likeBtn.style.cssText = "background:none;border:none;color:rgba(255,255,255,.4);font-size:.8rem;cursor:pointer;padding:0";
+      likeBtn.innerHTML = "❤️ " + (c.likes||0);
+      likeBtn.onclick = () => likeChapterComment(d.id, likeBtn);
+      likeRow.appendChild(likeBtn);
+      
+      div.appendChild(header);
+      div.appendChild(txt);
+      div.appendChild(likeRow);
       list.appendChild(div);
     });
   } catch(e) {
-    list.innerHTML = '<div style="text-align:center;color:rgba(255,100,100,.6);font-size:.85rem;padding:1rem">❌ تعذّر تحميل التعليقات</div>';
+    list.innerHTML = "";
+    const err = document.createElement("div");
+    err.style.cssText = "text-align:center;color:rgba(255,100,100,.6);font-size:.85rem;padding:1rem";
+    err.textContent = "❌ تعذّر تحميل التعليقات";
+    list.appendChild(err);
   }
 };
 
