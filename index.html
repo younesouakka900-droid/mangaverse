@@ -106,7 +106,7 @@ window.CU=null; window.CUD=null; window._curPage="home";
 // ─── AUTH STATE ───
 onAuthStateChanged(auth, async user=>{
   // ✅ أعلن أن Firebase Auth جاهز (للـ router)
-  if(!_authReady){ _authReady=true; if(_authReadyResolve) _authReadyResolve(); }
+  if(!window._authReady){ window._authReady=true; if(window._authReadyResolve) window._authReadyResolve(); }
   // ← امسح الواجهة أولاً قبل أي شيء
   clearProfileUI();
 
@@ -6428,10 +6428,10 @@ async function handleRoute(){
 window.addEventListener('hashchange', handleRoute);
 // شغّل الراوتر بعد تحميل الصفحة
 // ✅ انتظر Firebase Auth بدلاً من setTimeout ثابت
-let _authReady = false;
-let _authReadyResolve = null;
-const _authReadyPromise = new Promise(r => { _authReadyResolve = r; });
-window.addEventListener('load', ()=> _authReadyPromise.then(handleRoute));
+window._authReady = false;
+window._authReadyResolve = null;
+window._authReadyPromise = new Promise(r => { window._authReadyResolve = r; });
+window.addEventListener("load", ()=> window._authReadyPromise.then(handleRoute));
 function openModal(id){document.getElementById(id)?.classList.add('open');document.body.style.overflow='hidden';}
 function closeModal(id){
   document.getElementById(id)?.classList.remove('open');
