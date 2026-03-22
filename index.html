@@ -5976,10 +5976,10 @@ if("serviceWorker" in navigator){
   <div class="sb-section sb-links-section">
     <div class="sb-section-label">التنقل</div>
     <a class="sb-link" onclick="closeSidebar();showPage('home')">🏠 الرئيسية</a>
+    <a class="sb-link" id="sb-profile-link" onclick="closeSidebar();window.CU?showPage('profile'):openModal('m-auth')">👤 ملفي الشخصي</a>
+    <a class="sb-link" id="sb-library-link" onclick="closeSidebar();window.CU?showPage('library'):openModal('m-auth')">📚 مكتبتي</a>
     <a class="sb-link" onclick="closeSidebar();showPage('home');setTimeout(()=>G('browse-sec')?.scrollIntoView({behavior:'smooth'}),100)">🔍 تصفح الأعمال</a>
     <a class="sb-link" onclick="closeSidebar();showPage('anime')">🎌 عالم الأنمي</a>
-    <a class="sb-link" id="sb-library-link" onclick="closeSidebar();showPage('library')" style="display:none">📚 مكتبتي</a>
-    <a class="sb-link" id="sb-profile-link" onclick="closeSidebar();showPage('profile')" style="display:none">👤 ملفي الشخصي</a>
     <a class="sb-link" onclick="closeSidebar();showPage('about')">💡 من نحن</a>
     <a class="sb-link" href="https://mahbarat-alkhiyal.com" target="_blank" onclick="closeSidebar()">✦ محبرة الخيال</a>
     <a class="sb-link sb-admin-link" id="sb-admin-link" onclick="closeSidebar();window.openAdminDashboard()" style="display:none">⚙️ لوحة الإدارة</a>
