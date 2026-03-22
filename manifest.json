@@ -1,24 +1,54 @@
 {
   "name": "MangaVerse — منصة المانجا العربية",
   "short_name": "MangaVerse",
-  "description": "عالم المانجا والروايات في مكان واحد",
+  "description": "اقرأ وانشر وشارك أعمالك الإبداعية — مانجا، روايات، ويبتون",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#08080f",
   "theme_color": "#e8192c",
   "lang": "ar",
   "dir": "rtl",
+  "categories": ["entertainment", "books", "social"],
   "icons": [
     {
-      "src": "https://ahmnycfbfonmztxmwqdi.supabase.co/storage/v1/object/public/pdfs/uploads/og-image.jpg",
+      "src": "https://ahmnycfbfonmztxmwqdi.supabase.co/storage/v1/object/public/pdfs/uploads/icon-192.png",
       "sizes": "192x192",
-      "type": "image/jpeg"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://ahmnycfbfonmztxmwqdi.supabase.co/storage/v1/object/public/pdfs/uploads/og-image.jpg",
+      "src": "https://ahmnycfbfonmztxmwqdi.supabase.co/storage/v1/object/public/pdfs/uploads/icon-512.png",
       "sizes": "512x512",
-      "type": "image/jpeg"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "https://ahmnycfbfonmztxmwqdi.supabase.co/storage/v1/object/public/pdfs/uploads/og-image.jpg",
+      "sizes": "1200x630",
+      "type": "image/jpeg",
+      "label": "الصفحة الرئيسية"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "تصفح الأعمال",
+      "short_name": "تصفح",
+      "description": "اكتشف أحدث الأعمال",
+      "url": "/#/",
+      "icons": [{ "src": "https://ahmnycfbfonmztxmwqdi.supabase.co/storage/v1/object/public/pdfs/uploads/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "نشر عمل",
+      "short_name": "نشر",
+      "description": "انشر عملك الجديد",
+      "url": "/#/publish",
+      "icons": [{ "src": "https://ahmnycfbfonmztxmwqdi.supabase.co/storage/v1/object/public/pdfs/uploads/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
 }

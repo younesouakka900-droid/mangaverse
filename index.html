@@ -155,7 +155,6 @@ onAuthStateChanged(auth, async user=>{
     // ✅ أعد تحميل البطاقات عند تسجيل الدخول لضمان ظهور زر الحذف/التعديل الصحيح
     // نستخدم setTimeout لتجنب التعارض مع التحميل الأول
     setTimeout(()=>{ loadWorks(); loadHeroSlider(); loadTrending(); }, 500);
-    setTimeout(()=>{ typeof window.loadContinueReading==="function" && window.loadContinueReading(); }, 1200);
     if(window._curPage==="profile") loadProfile();
     if(window._curPage==="library") loadLibrary();
   } else {
@@ -166,7 +165,7 @@ onAuthStateChanged(auth, async user=>{
     // أوقف المستمع عند تسجيل الخروج
     if(window._notifUnsub) { window._notifUnsub(); window._notifUnsub=null; }
     updateNavUI(false);
-    const _crs=document.getElementById('continue-reading-sec');if(_crs)_crs.style.display='none';
+    // ✅ أعد تحميل البطاقات لإخفاء أزرار المدير عند الخروج
     loadWorks();
   }
 });
@@ -353,7 +352,6 @@ window.doPublish=async()=>{
   const now = Date.now();
   if(now - _lastPublishTime < 30000) return toast("⚠️ انتظر 30 ثانية بين كل نشر وآخر","w");
   const title=V("w-title"),type=V("w-type"),genre=V("w-genre"),desc=V("w-desc"),status=V("w-status");
-  const humanBadge=document.getElementById("w-human-badge")?.checked||false;
   const coverFile=G("w-cover-file").files[0];
   const pdfFile=G("w-pdf-file").files[0];
   const extUrl=V("w-url");
@@ -410,14 +408,13 @@ window.doPublish=async()=>{
       authorAvatar:CUD?.avatarUrl||"", authorVerified:CUD?.verified||false,
       authorPoints:CUD?.points||0,
       createdAt:serverTimestamp(),
-      humanBadge,
       views:0, likes:0, bookmarkCount:0,
       rating:0, ratingCount:0, ratings:{}, comments:[]
     });
     await setDoc(doc(db,"users",CU.uid),{worksCount:increment(1)},{merge:true});
     updateUserPoints(CU.uid);
     ["w-title","w-desc","w-url","w-support","w-audio","w-trailer","w-novel-content"].forEach(id=>{const el=G(id);if(el)el.value="";});
-    ["w-cover-file","w-pdf-file","w-pages","w-type","w-genre"].forEach(id=>{const el=G(id);if(el)el.value="";}); const _hb=document.getElementById("w-human-badge");if(_hb)_hb.checked=false;
+    ["w-cover-file","w-pdf-file","w-pages","w-type","w-genre"].forEach(id=>{const el=G(id);if(el)el.value="";});
     const ws=G("w-status"); if(ws) ws.value="مستمر";
     G("cover-prev")?.style&&(G("cover-prev").style.display="none");
     G("pages-count").textContent="";
@@ -749,7 +746,7 @@ function workCard(w){
       </div>
       <button class="wc-share-btn" onclick="shareWork(event,'${w.id}','${escapedTitle}')" title="مشاركة الرابط">🔗</button>
     </div>
-    <div class="work-title">${safeTitle} ${w.authorVerified?'<span class="vbadge-sm">✦</span>':''} ${w.humanBadge?'<span style="font-size:.7rem;vertical-align:middle" title="إبداع بشري 100%">🧠✍️</span>':''}</div>
+    <div class="work-title">${safeTitle} ${w.authorVerified?'<span class="vbadge-sm">✦</span>':''}</div>
     <div class="work-meta">
       <span style="cursor:pointer" onclick="event.stopPropagation();openPublicProfile('${w.authorId}')">✍️ <span class="${getNameGlowClass({points:w.authorPoints||0,isAdmin:w.authorId==='admin'})}">${safeAuthor}</span></span>
       <span style="color:var(--mu);font-size:.78rem">👁 ${w.views||0}</span>
@@ -794,13 +791,6 @@ window.openWork=async id=>{
   // XSS-safe: نستخدم textContent للبيانات القادمة من المستخدمين
   const titleEl = G("wm-title");
   titleEl.textContent = w.title||"";
-  if(w.humanBadge){
-    const hb=document.createElement("span");
-    hb.title="إبداع بشري 100% — بدون ذكاء اصطناعي";
-    hb.style.cssText="display:inline-flex;align-items:center;gap:.3rem;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:#10b981;font-size:.62rem;font-weight:800;padding:.15rem .55rem;border-radius:20px;vertical-align:middle;margin-right:.4rem;";
-    hb.textContent="🧠✍️ إبداع بشري";
-    titleEl.appendChild(hb);
-  }
   const badge = document.createElement("span");
   badge.className = `status-badge ${statusClass(w.status)}`;
   badge.textContent = w.status||"مستمر";
@@ -1168,7 +1158,6 @@ async function _saveReaderProgress(w, cnt){
     try{
       await setDoc(doc(db,"readProgress",CU.uid+"_"+w.id),{
         uid: CU.uid, workId: w.id, workTitle: w.title,
-        coverUrl: w.coverUrl||"", workType: w.type||"",
         scrollPct: pct, updatedAt: serverTimestamp()
       });
     }catch(e){}
@@ -1201,7 +1190,43 @@ window.openPdfViewer = async (src, title, w) => {
   G("pdf-viewer-title").textContent = title || "";
   G("pdf-viewer-page").style.display = "flex";
   document.body.style.overflow = "hidden";
-  G("pdf-download-btn").onclick = () => window.open(src, "_blank");
+  // تحويل الرابط قبل الاستخدام
+  const _fixedSrc = src.includes("cloudinary.com") 
+    ? src.replace("/authenticated/","/upload/").replace("/private/","/upload/")
+    : src;
+  G("pdf-download-btn").onclick = () => window.open(_fixedSrc, "_blank");
+
+  // ── تحويل رابط Cloudinary المحمي إلى عام ──
+  let pdfSrc = src;
+  if(src.includes("cloudinary.com")){
+    // تحويل authenticated → upload لجعل الملف عاماً
+    pdfSrc = src.replace("/authenticated/", "/upload/")
+               .replace("/private/", "/upload/");
+  }
+  const isCloudinary = pdfSrc.includes("cloudinary.com");
+  const isGdrive     = pdfSrc.includes("drive.google.com") || pdfSrc.includes("docs.google.com");
+  const isBase64     = pdfSrc.startsWith("data:");
+
+  // دالة بناء رابط Google Viewer
+  const buildGViewer = (url) => `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+
+  // للروابط الخارجية — Google Docs Viewer أولاً
+  if((isCloudinary || isGdrive) && !isBase64){
+    const viewerUrl = buildGViewer(pdfSrc);
+    G("pdf-canvas-wrap").innerHTML = `
+      <div style="text-align:center;padding:1rem 0 .5rem;color:var(--mu);font-size:.85rem">⏳ جاري تحميل PDF عبر المشاهد...</div>
+      <iframe src="${viewerUrl}"
+        style="width:100%;height:75vh;border:none;border-radius:8px;background:#fff;"
+        allowfullscreen>
+      </iframe>
+      <div style="text-align:center;margin-top:.5rem;font-size:.82rem;color:var(--mu)">
+        لم يظهر؟ 
+        <a href="${pdfSrc}" target="_blank" style="color:var(--red);font-weight:700">📥 افتح مباشرة</a>
+      </div>`;
+    return;
+  }
+
+  // للملفات المحلية (base64) — استخدم PDF.js
   G("pdf-canvas-wrap").innerHTML = '<div style="text-align:center;padding:3rem;color:rgba(255,255,255,.5)"><span class="spin" style="font-size:2rem">⏳</span><div style="margin-top:1rem">جاري تحميل PDF...</div></div>';
 
   if(!window.pdfjsLib) {
@@ -1216,28 +1241,22 @@ window.openPdfViewer = async (src, title, w) => {
   }
 
   try {
-    const loadingTask = window.pdfjsLib.getDocument({
-      url: src,
-      cMapUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/",
-      cMapPacked: true,
-      standardFontDataUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/",
-      withCredentials: false,
-    });
+    const loadingTask = window.pdfjsLib.getDocument(src);
     _pdfDoc = await loadingTask.promise;
     _pdfTotal = _pdfDoc.numPages;
     _pdfPage  = 1;
     _updatePdfNav();
     await _renderPdfPage(_pdfPage);
   } catch(e) {
+    // Fallback: Google Docs Viewer
+    const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(src)}&embedded=true`;
     G("pdf-canvas-wrap").innerHTML = `
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:1.2rem;padding:2rem">
-        <div style="font-size:3rem">📄</div>
-        <div style="font-weight:700;font-size:1rem;color:rgba(255,255,255,.8)">${title||"الملف"}</div>
-        <div style="font-size:.82rem;color:rgba(255,255,255,.4);text-align:center">تعذّر عرض PDF مباشرة في المتصفح</div>
-        <a href="${src}" target="_blank" rel="noopener"
-          style="background:var(--red);color:#fff;padding:.8rem 2rem;border-radius:12px;font-family:'Tajawal';font-weight:700;font-size:.95rem;text-decoration:none;display:inline-flex;align-items:center;gap:.5rem">
-          📥 افتح PDF مباشرة
-        </a>
+      <iframe src="${viewerUrl}"
+        style="width:100%;height:80vh;border:none;border-radius:8px;"
+        allowfullscreen loading="lazy">
+      </iframe>
+      <div style="text-align:center;margin-top:.5rem;font-size:.8rem;color:var(--mu)">
+        إذا لم يظهر PDF، اضغط <a href="${src}" target="_blank" style="color:var(--red)">هنا للفتح المباشر</a>
       </div>`;
   }
 };
@@ -1248,21 +1267,13 @@ async function _renderPdfPage(num) {
   const wrap = G("pdf-canvas-wrap");
   wrap.innerHTML = '<div style="text-align:center;padding:2rem;color:rgba(255,255,255,.4)"><span class="spin">⏳</span></div>';
   try {
-    const page      = await _pdfDoc.getPage(num);
-    const vw        = Math.min(window.innerWidth, 900);
-    const dpr       = window.devicePixelRatio || 1;
-    const baseScale = vw / page.getViewport({scale:1}).width;
-    const viewport  = page.getViewport({ scale: baseScale * dpr });
-    const canvas    = document.createElement("canvas");
-    canvas.width    = viewport.width;
-    canvas.height   = viewport.height;
-    canvas.style.width   = (viewport.width  / dpr) + "px";
-    canvas.style.height  = (viewport.height / dpr) + "px";
-    canvas.style.maxWidth    = "100%";
-    canvas.style.display     = "block";
-    canvas.style.margin      = "0 auto";
-    canvas.style.borderRadius= "8px";
-    canvas.style.boxShadow   = "0 4px 30px rgba(0,0,0,.5)";
+    const page     = await _pdfDoc.getPage(num);
+    const vw       = Math.min(window.innerWidth, 900);
+    const viewport = page.getViewport({ scale: vw / page.getViewport({scale:1}).width });
+    const canvas   = document.createElement("canvas");
+    canvas.width   = viewport.width;
+    canvas.height  = viewport.height;
+    canvas.style.cssText = "max-width:100%;border-radius:8px;box-shadow:0 4px 30px rgba(0,0,0,.5);display:block;margin:0 auto;";
     wrap.innerHTML = "";
     wrap.appendChild(canvas);
     await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
@@ -1718,6 +1729,13 @@ window.doAddChapter = async () => {
 
     closeModal("m-add-chapter");
     toast(`✅ تم إضافة الفصل «${title}» بنجاح!`);
+    // إرسال إشعار للمتابعين (local notification للمبدع نفسه كتأكيد)
+    _sendBrowserNotif(
+      `📚 ${window._wd?.title||"عمل جديد"}`,
+      `تم نشر الفصل: ${sanitize(title)} ✅`,
+      window._wd?.coverUrl||"",
+      workId
+    );
 
     // تحديث زر الفصول في work modal
     const chapBtn = G("wm-chapters-btn");
@@ -2003,21 +2021,51 @@ window.requestPushPermission = async () => {
   }
   if(Notification.permission === "granted"){
     window._pushEnabled = true;
+    _updatePushBtn();
     toast("✅ الإشعارات مفعّلة بالفعل!");
-    _updatePushBtn(); return;
+    return;
   }
   const perm = await Notification.requestPermission();
   if(perm === "granted"){
     window._pushEnabled = true;
     localStorage.setItem("mv_push","1");
-    toast("✅ تم تفعيل إشعارات الجوال!");
     _updatePushBtn();
-    // إشعار ترحيبي
-    new Notification("MangaVerse 🎨", {
-      body: "ستصلك الإشعارات الآن فوراً!",
-      icon: "https://res.cloudinary.com/ddsfdyjek/image/upload/w_64,h_64,c_fill/mangaverse_logo",
-      badge: "https://res.cloudinary.com/ddsfdyjek/image/upload/w_32,h_32,c_fill/mangaverse_logo"
-    });
+    toast("✅ تم تفعيل الإشعارات! ستصلك أحدث الفصول فوراً 🔔");
+
+    // إشعار ترحيبي عبر SW
+    if("serviceWorker" in navigator && navigator.serviceWorker.controller){
+      navigator.serviceWorker.ready.then(reg => {
+        reg.showNotification("MangaVerse 🎨", {
+          body: "مرحباً! ستصلك الإشعارات الآن فوراً عند نشر فصل جديد",
+          icon: "https://ahmnycfbfonmztxmwqdi.supabase.co/storage/v1/object/public/pdfs/uploads/icon-192.png",
+          badge:"https://ahmnycfbfonmztxmwqdi.supabase.co/storage/v1/object/public/pdfs/uploads/icon-192.png",
+          dir: "rtl", lang: "ar",
+          vibrate: [200,100,200],
+          tag: "mv-welcome"
+        });
+      });
+    } else {
+      new Notification("MangaVerse 🎨", {
+        body: "ستصلك الإشعارات الآن فوراً!",
+        icon: "https://ahmnycfbfonmztxmwqdi.supabase.co/storage/v1/object/public/pdfs/uploads/icon-192.png",
+        dir: "rtl", lang: "ar"
+      });
+    }
+
+    // حفظ token الجهاز في Firebase للإشعارات المستقبلية
+    if(CU){
+      try{
+        const token = `browser_${CU.uid}_${Date.now()}`;
+        await setDoc(doc(db,"pushTokens",CU.uid),{
+          uid: CU.uid,
+          token,
+          platform: "web",
+          userAgent: navigator.userAgent.substring(0,100),
+          updatedAt: serverTimestamp()
+        },{merge:true});
+      }catch(e){}
+    }
+
   } else {
     toast("⚠️ لم يتم منح الإذن — يمكنك تفعيله من إعدادات المتصفح","w");
   }
@@ -2039,20 +2087,30 @@ function _updatePushBtn(){
   btn.style.color       = enabled ? "var(--green)" : "var(--mu)";
 }
 
-function _sendBrowserNotif(title, body, icon){
+function _sendBrowserNotif(title, body, icon, workId){
   if(!window._pushEnabled || Notification.permission !== "granted") return;
-  // لا تُرسل الإشعار إذا كان المستخدم يشاهد الصفحة
-  if(document.visibilityState === "visible") return;
-  try {
-    const n = new Notification(title, {
-      body,
-      icon: icon || "https://res.cloudinary.com/ddsfdyjek/image/upload/w_64,h_64,c_fill/mangaverse_logo",
-      badge:"https://res.cloudinary.com/ddsfdyjek/image/upload/w_32,h_32,c_fill/mangaverse_logo",
-      dir: "rtl", lang: "ar"
-    });
-    n.onclick = () => { window.focus(); n.close(); };
-    setTimeout(() => n.close(), 6000);
-  } catch(e){ }
+  const ICON = icon || "https://ahmnycfbfonmztxmwqdi.supabase.co/storage/v1/object/public/pdfs/uploads/icon-192.png";
+  const opts = {
+    body, icon: ICON, badge: ICON,
+    dir:"rtl", lang:"ar",
+    vibrate:[200,100,200],
+    tag: workId ? "mv-work-"+workId : "mv-notif",
+    data: { workId },
+    actions:[
+      {action:"open", title:"📖 اقرأ الآن"},
+      {action:"dismiss", title:"✕ إغلاق"}
+    ]
+  };
+  // استخدم SW إذا متاح (يعمل حتى لو الصفحة مغلقة)
+  if("serviceWorker" in navigator && navigator.serviceWorker.controller){
+    navigator.serviceWorker.ready.then(reg => reg.showNotification(title, opts)).catch(()=>{});
+  } else if(document.visibilityState !== "visible"){
+    try{
+      const n = new Notification(title, opts);
+      n.onclick = () => { window.focus(); if(workId&&typeof openWork==="function") openWork(workId); n.close(); };
+      setTimeout(()=>n.close(), 7000);
+    }catch(e){}
+  }
 }
 
 // ─── NOTIFICATIONS — Real-time بـ onSnapshot ───
@@ -2249,26 +2307,6 @@ function calcPoints(userData){
   const comments = (userData.totalComments||0) * 2;
   return works + views + followers + ratings + comments;
 }
-function getAutoBio(pts){
-  if(pts>=5000) return "أسطورة MangaVerse — قمة لا يبلغها إلا الخاصة 👑";
-  if(pts>=2000) return "مبدع ماسي — صنع اسمه في عالم MangaVerse 💎";
-  if(pts>=1000) return "مبدع ذهبي — موهبة استثنائية تتألق 🥇";
-  if(pts>=500)  return "مبدع فضي — يصنع طريقه نحو القمة 🥈";
-  if(pts>=200)  return "مبدع برونزي — موهبة في طور النمو 🥉";
-  if(pts>=50)   return "قارئ نشيط يخطو أولى خطواته ⭐";
-  if(pts>=10)   return "متدرب واعد في MangaVerse 📖";
-  return "مبدع جديد في MangaVerse 🎨";
-}
-function smartBio(userData,pts){
-  const bio=userData.bio||"";
-  const defaults=["مبدع جديد في MangaVerse 🎨","متدرب واعد في MangaVerse 📖",
-    "قارئ نشيط يخطو أولى خطواته ⭐","مبدع برونزي — موهبة في طور النمو 🥉",
-    "مبدع فضي — يصنع طريقه نحو القمة 🥈","مبدع ذهبي — موهبة استثنائية تتألق 🥇",
-    "مبدع ماسي — صنع اسمه في عالم MangaVerse 💎",
-    "أسطورة MangaVerse — قمة لا يبلغها إلا الخاصة 👑","لا توجد نبذة بعد",""];
-  if(!bio||defaults.includes(bio)) return getAutoBio(pts);
-  return bio;
-}
 
 function badgeHTML(pts, size="sm"){
   const b = getBadge(pts);
@@ -2337,7 +2375,7 @@ window.openPublicProfile = async (uid) => {
     const _ppEmail = d.email || (window.CU?.email) || "";
     G("pp-name").innerHTML = glowName(sanitize(d.name||""), {...d, points:_ppPts, email:_ppEmail}, d.verified||false);
     G("pp-username").textContent   = d.username || "";
-    G("pp-bio").textContent        = smartBio(d, _ppPts);
+    G("pp-bio").textContent        = d.bio || "لا توجد نبذة بعد";
     G("pp-location").textContent   = d.location ? "📍 "+d.location : "";
     G("pp-followers").textContent  = (d.followers||[]).length;
     G("pp-following").textContent  = (d.following||[]).length;
@@ -2425,7 +2463,7 @@ window.loadProfile=async()=>{
   const d=s.exists()?s.data():{};
   const _pPts = d.points !== undefined ? d.points : calcPoints(d); G("p-name").innerHTML = glowName(sanitize(d.name||CU.displayName||""), {...d, points:_pPts, email:CU.email||""}, d.verified||false);
   G("p-user").textContent=d.username||"@user";
-  G("p-bio").textContent=smartBio(d,_pPts);
+  G("p-bio").textContent=d.bio||"لا توجد نبذة بعد";
   G("p-loc").textContent=d.location||"غير محدد";
   G("p-email").textContent=CU.email||"";
   G("p-followers").textContent=(d.followers||[]).length;
@@ -2647,7 +2685,7 @@ window.doSearch=()=>{
 };
 
 // ─── البحث المتقدم ───
-window._advFilters = { type:"all", genre:"all", status:"all", sort:"newest", rating:"all", humanOnly:false };
+window._advFilters = { type:"all", genre:"all", status:"all", sort:"newest", rating:"all" };
 
 window.toggleAdvFilters = () => {
   const panel = G("adv-filters-panel");
@@ -2748,7 +2786,6 @@ window.loadWorksAdvanced = async (searchQ, filters) => {
     if(filters.genre  !== "all") works = works.filter(w => w.genre  === filters.genre);
     if(filters.status !== "all") works = works.filter(w => w.status === filters.status);
     if(filters.rating !== "all") works = works.filter(w => (w.rating||0) >= parseFloat(filters.rating));
-    if(filters.humanOnly) works = works.filter(w => w.humanBadge === true);
     if(filters.sort === "rating") works.sort((a,b)=>(b.rating||0)-(a.rating||0));
     if(searchQ){
       works = works.filter(w =>
@@ -4937,42 +4974,9 @@ body.light-mode .stab:hover{color:var(--red);}
 .novel-pub-wrap.show{display:block;}
 #w-novel-content{min-height:260px;resize:vertical;font-family:'Tajawal';font-size:.95rem;line-height:1.9;direction:rtl;}
 .novel-char-count{font-size:.73rem;color:var(--mu);text-align:left;margin-top:.3rem;}
-/* ── 404 ── */
-#page-404{display:none;}
-#page-404.active{display:flex!important;}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}
-/* ── Back to top ── */
-#back-to-top{display:none;}
-#back-to-top.visible{display:flex!important;}
-#back-to-top:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(232,25,44,.6);}
-/* ── واصل القراءة ── */
-.cr-card{display:flex;align-items:center;gap:.9rem;background:rgba(255,255,255,.03);border:1px solid var(--br);border-radius:14px;padding:.8rem 1rem;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;}
-.cr-card:hover{border-color:rgba(232,25,44,.3);background:rgba(232,25,44,.04);transform:translateX(-3px);}
-.cr-card::before{content:'';position:absolute;right:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--red),var(--gold));border-radius:0 14px 14px 0;opacity:0;transition:opacity .25s;}
-.cr-card:hover::before{opacity:1;}
-.cr-cover{width:48px;height:64px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--br);}
-.cr-cover-def{width:48px;height:64px;border-radius:8px;background:var(--s2);border:1px solid var(--br);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;}
-.cr-info{flex:1;min-width:0;}
-.cr-title{font-weight:800;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:.2rem;}
-.cr-meta{font-size:.74rem;color:var(--mu);}
-.cr-progress-wrap{height:4px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:.5rem;overflow:hidden;}
-.cr-progress-bar{height:100%;background:linear-gradient(90deg,var(--red),var(--gold));border-radius:2px;transition:width .6s ease;}
-.cr-badge{flex-shrink:0;background:rgba(232,25,44,.12);border:1px solid rgba(232,25,44,.3);color:var(--red);font-size:.68rem;font-weight:800;padding:.2rem .6rem;border-radius:20px;white-space:nowrap;}
-/* ── بطاقات الإحصائيات ── */
-.analytics-card{background:rgba(255,255,255,.03);border:1px solid var(--br);border-radius:14px;padding:1rem 1.2rem;transition:border-color .2s;}
-.analytics-card:hover{border-color:rgba(232,25,44,.3);}
-.analytics-card .an{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--red);line-height:1;}
-.analytics-card .al{font-size:.7rem;color:var(--mu);margin-top:.2rem;}
-/* ── شارة البشري ── */
-.human-badge-sm{font-size:.72rem;vertical-align:middle;}
 
 </style>
 <link rel="manifest" href="/manifest.json">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-touch-fullscreen" content="yes">
-<meta name="application-name" content="MangaVerse">
-<link rel="apple-touch-icon" sizes="192x192" href="https://ahmnycfbfonmztxmwqdi.supabase.co/storage/v1/object/public/pdfs/uploads/icon-192.png">
-<link rel="apple-touch-icon" sizes="512x512" href="https://ahmnycfbfonmztxmwqdi.supabase.co/storage/v1/object/public/pdfs/uploads/icon-512.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -4990,6 +4994,39 @@ body.light-mode .stab:hover{color:var(--red);}
 <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/younesouakka900-droid/%D8%B9%D8%A7%D9%84%D9%85-%D8%A7%D9%84%D9%85%D8%A7%D9%86%D8%AC%D8%A7/main/favicon.png">
 <!-- Adsterra Popunder -->
 <script src="https://pl28904726.effectivegatecpm.com/19/00/e9/1900e90ceb43c783f1f16564730d8229.js"></script>
+<script>
+// ── تسجيل Service Worker ──
+if("serviceWorker" in navigator){
+  window.addEventListener("load", async () => {
+    try{
+      const reg = await navigator.serviceWorker.register("/service-worker.js", { scope:"/" });
+      console.log("[MangaVerse] SW registered:", reg.scope);
+
+      // استقبال رسائل من SW (فتح عمل من الإشعار)
+      navigator.serviceWorker.addEventListener("message", e => {
+        if(e.data?.type === "OPEN_WORK" && e.data.workId){
+          if(typeof openWork === "function") openWork(e.data.workId);
+        }
+      });
+
+      // تحديث SW عند توفر نسخة جديدة
+      reg.addEventListener("updatefound", () => {
+        const newSW = reg.installing;
+        newSW.addEventListener("statechange", () => {
+          if(newSW.state === "installed" && navigator.serviceWorker.controller){
+            // إشعار بالتحديث
+            if(typeof toast === "function")
+              toast("🔄 تحديث جديد — أعد تحميل الصفحة للحصول عليه");
+          }
+        });
+      });
+
+    }catch(e){
+      console.warn("[MangaVerse] SW registration failed:", e);
+    }
+  });
+}
+</script>
 </head>
 <body>
 
@@ -5410,19 +5447,6 @@ body.light-mode .stab:hover{color:var(--red);}
             <div class="uzi">📄</div><h4>رفع ملف PDF</h4>
             <p id="pdf-name-lbl" style="color:rgba(255,255,255,.4)">PDF — حتى 50MB</p>
           </div>
-        </div>
-      </div>
-    </div>
-    <div style="margin-bottom:1rem;background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(5,150,105,.05));border:1px solid rgba(16,185,129,.25);border-radius:14px;padding:1rem 1.1rem;cursor:pointer" onclick="document.getElementById('w-human-badge').click()">
-      <div style="display:flex;align-items:center;gap:.8rem">
-        <input type="checkbox" id="w-human-badge" style="width:18px;height:18px;accent-color:#10b981;cursor:pointer;flex-shrink:0" onclick="event.stopPropagation()">
-        <div>
-          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem">
-            <span>🧠✍️</span>
-            <span style="font-weight:800;font-size:.9rem;color:#10b981">إبداع بشري 100%</span>
-            <span style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:#10b981;font-size:.65rem;font-weight:800;padding:.1rem .4rem;border-radius:20px">NO AI</span>
-          </div>
-          <div style="font-size:.76rem;color:rgba(255,255,255,.45)">أؤكد أن هذا العمل كُتب ورُسم بجهد بشري خالص دون استخدام الذكاء الاصطناعي</div>
         </div>
       </div>
     </div>
@@ -5906,9 +5930,6 @@ body.light-mode .stab:hover{color:var(--red);}
     <button class="sb-btn sb-btn-outline" onclick="closeSidebar();openEditProf()">✏️ تعديل الملف الشخصي</button>
     <button class="sb-btn sb-btn-outline" onclick="closeSidebar();openModal('m-customize')">🎨 تخصيص الواجهة</button>
     <button class="sb-btn sb-btn-outline" id="push-toggle-btn" onclick="window._pushEnabled?disablePush():requestPushPermission()">🔔 تفعيل إشعارات الجوال</button>
-    <button id="pwa-install-btn" onclick="installPWA()" style="display:none;width:100%;background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(99,102,241,.1));border:1px solid rgba(139,92,246,.4);color:#a78bfa;font-family:'Tajawal';font-size:.88rem;font-weight:700;padding:.65rem 1rem;border-radius:10px;cursor:pointer;align-items:center;justify-content:center;gap:.5rem;margin-bottom:.3rem;transition:all .2s" onmouseover="this.style.background='rgba(139,92,246,.25)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(139,92,246,.15),rgba(99,102,241,.1))'">
-      📲 تثبيت كتطبيق على الهاتف
-    </button>
     <button class="sb-btn sb-btn-danger" onclick="closeSidebar();doLogout()">🚪 تسجيل الخروج</button>
     <button id="btn-delete-account" onclick="closeSidebar();deleteAccount()" style="width:100%;background:transparent;border:1px solid rgba(232,25,44,.3);color:rgba(232,25,44,.6);font-family:'Tajawal';font-size:.82rem;padding:.6rem;border-radius:10px;cursor:pointer;margin-top:.3rem;transition:all .2s" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='rgba(232,25,44,.3)';this.style.color='rgba(232,25,44,.6)'">🗑 حذف الحساب نهائياً</button>
   </div>
@@ -5946,26 +5967,6 @@ body.light-mode .stab:hover{color:var(--red);}
 </nav>
 
 <!-- HOME PAGE -->
-<!-- زر الرجوع للأعلى -->
-<button id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="العودة للأعلى"
-  style="display:none;position:fixed;bottom:80px;left:20px;z-index:8000;width:44px;height:44px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 20px rgba(232,25,44,.4);transition:all .3s;align-items:center;justify-content:center">↑</button>
-
-<!-- رسالة انقطاع الإنترنت -->
-<div id="offline-banner" style="display:none;position:fixed;top:60px;left:0;right:0;z-index:9999;background:#1a0a00;border-bottom:2px solid #f59e0b;padding:.6rem 1rem;text-align:center;font-size:.85rem;color:#f59e0b;font-family:'Tajawal';font-weight:700">
-  ⚠️ لا يوجد اتصال بالإنترنت — بعض المميزات قد لا تعمل
-</div>
-
-<!-- صفحة 404 -->
-<div class="page" id="page-404" style="min-height:100vh;display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:2rem">
-  <div style="font-size:6rem;margin-bottom:1rem;animation:float 3s ease-in-out infinite">🌌</div>
-  <div style="font-family:'Bebas Neue';font-size:5rem;color:var(--red);letter-spacing:4px;line-height:1">404</div>
-  <div style="font-size:1.2rem;font-weight:800;color:rgba(255,255,255,.8);margin:.5rem 0">الصفحة غير موجودة</div>
-  <div style="font-size:.9rem;color:var(--mu);max-width:320px;line-height:1.7;margin-bottom:2rem">يبدو أن هذا العمل أو الصفحة لا وجود لها. ربما تم حذفها أو الرابط خاطئ.</div>
-  <button onclick="showPage('home')" style="background:var(--red);color:#fff;border:none;padding:.85rem 2.5rem;border-radius:12px;font-family:'Tajawal';font-size:1rem;font-weight:800;cursor:pointer;box-shadow:0 0 20px var(--rg);transition:transform .2s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
-    🏠 العودة للرئيسية
-  </button>
-</div>
-
 <div class="page active" id="page-home">
   <!-- HERO SLIDER -->
   <div class="hero-slider-wrap">
@@ -5974,19 +5975,6 @@ body.light-mode .stab:hover{color:var(--red);}
     <button class="slider-arr prev" onclick="window.goSlide(_sliderIdx-1)">&#8249;</button>
     <button class="slider-arr next" onclick="window.goSlide(_sliderIdx+1)">&#8250;</button>
   </div>
-
-  <!-- واصل القراءة -->
-  <section id="continue-reading-sec" style="display:none;padding:1.5rem 0;background:linear-gradient(180deg,rgba(232,25,44,.04),transparent);border-bottom:1px solid var(--br)">
-    <div class="cont">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
-        <div>
-          <span class="stag" style="margin-bottom:.2rem;display:inline-block">📖 واصل</span>
-          <h2 class="stitle" style="margin:0;font-size:1.2rem">القراءة من حيث توقفت</h2>
-        </div>
-      </div>
-      <div id="continue-reading-list" style="display:flex;flex-direction:column;gap:.7rem"></div>
-    </div>
-  </section>
 
   <!-- MANIFESTO -->
   <div class="manifesto">
@@ -6165,13 +6153,8 @@ body.light-mode .stab:hover{color:var(--red);}
             </div>
 
           </div>
-          <div style="margin-top:.8rem;padding:.65rem 1rem;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:12px;display:flex;align-items:center;gap:.8rem;cursor:pointer" onclick="document.getElementById('adv-human-only').click()">
-            <input type="checkbox" id="adv-human-only" style="width:16px;height:16px;accent-color:#10b981;cursor:pointer" onclick="event.stopPropagation()" onchange="window._advFilters.humanOnly=this.checked;applyAdvSearch()">
-            <span style="font-size:.85rem;font-weight:700;color:#10b981">🧠✍️ إبداع بشري فقط</span>
-            <span style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#10b981;font-size:.62rem;font-weight:800;padding:.1rem .35rem;border-radius:20px;margin-right:auto">NO AI</span>
-          </div>
           <div style="display:flex;justify-content:flex-end;margin-top:.8rem">
-            <button onclick="resetAdvSearch()"  style="background:transparent;border:1px solid var(--br);color:var(--mu);font-family:'Tajawal';font-size:.82rem;padding:.4rem 1rem;border-radius:8px;cursor:pointer">🗑 إعادة ضبط</button>
+            <button onclick="resetAdvSearch()" style="background:transparent;border:1px solid var(--br);color:var(--mu);font-family:'Tajawal';font-size:.82rem;padding:.4rem 1rem;border-radius:8px;cursor:pointer">🗑 إعادة ضبط</button>
           </div>
         </div>
 
@@ -6342,12 +6325,6 @@ body.light-mode .stab:hover{color:var(--red);}
       <div id="p-top-works" style="margin-top:1rem;display:flex;flex-direction:column;gap:.6rem"></div>
     </div>
 
-    <!-- 📊 لوحة الإحصائيات التفصيلية -->
-    <div style="margin-top:2rem" id="creator-analytics-wrap">
-      <span class="stag">📊 إحصائياتي التفصيلية</span>
-      <div id="creator-analytics" style="display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem;margin-top:1rem"></div>
-    </div>
-
     <div style="margin-top:2rem">
       <span class="stag">أعمالي</span>
       <!-- تبويبات النوع في الصفحة الشخصية -->
@@ -6470,17 +6447,12 @@ body.light-mode .stab:hover{color:var(--red);}
 function G(id){return document.getElementById(id);}
 function showPage(n){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  const pg = document.getElementById('page-'+n);
-  if(!pg){ // صفحة غير موجودة → 404
-    document.getElementById('page-404')?.classList.add('active');
-    window._curPage='404'; window.scrollTo(0,0); return;
-  }
-  pg.classList.add('active');
+  document.getElementById('page-'+n)?.classList.add('active');
   window._curPage=n; window.scrollTo(0,0);
   if(n==='profile') window.loadProfile&&loadProfile();
   if(n==='home'){window.loadWorks&&loadWorks();window.loadHeroSlider&&loadHeroSlider();window.loadTrending&&loadTrending();}
   if(n==='library') window.loadLibrary&&loadLibrary();
-  // تحديث الرابط
+  // تحديث الرابط في الشريط
   if(n==='home') history.replaceState(null,'','#/');
   else if(n==='profile') history.replaceState(null,'','#/profile');
   else if(n==='library') history.replaceState(null,'','#/library');
@@ -7296,214 +7268,4 @@ window.addEventListener('error', function(e){
   console.error('[MangaVerse] JS Error:', e.message, 'at', e.filename, ':', e.lineno);
 });
 
-</script>
-<script>
-// ══════════════════════════════════════════════════════════════
-// ── دوال خارج الـ module — تستخدم window._ للوصول لـ Firebase ──
-// ══════════════════════════════════════════════════════════════
-
-function _fb(){
-  return {
-    db:window._db, doc:window._doc, getDoc:window._getDoc,
-    getDocs:window._getDocs, setDoc:window._setDoc, addDoc:window._addDoc,
-    updateDoc:window._updateDoc, deleteDoc:window._deleteDoc,
-    collection:window._collection, query:window._query,
-    where:window._where, orderBy:window._orderBy, limit:window._limit,
-    serverTimestamp:window._serverTimestamp, increment:window._increment
-  };
-}
-
-// ════════════════════════════════════════
-// ── 1. زر الرجوع للأعلى ──
-// ════════════════════════════════════════
-window.addEventListener("scroll", () => {
-  const btn = document.getElementById("back-to-top");
-  if(!btn) return;
-  if(window.scrollY > 400) btn.classList.add("visible");
-  else btn.classList.remove("visible");
-}, {passive:true});
-
-// ════════════════════════════════════════
-// ── 2. كشف انقطاع الإنترنت ──
-// ════════════════════════════════════════
-function _updateOnlineStatus(){
-  const banner = document.getElementById("offline-banner");
-  if(!banner) return;
-  if(!navigator.onLine){
-    banner.style.display = "block";
-    banner.textContent = "⚠️ لا يوجد اتصال بالإنترنت — بعض المميزات قد لا تعمل";
-  } else {
-    if(banner.style.display !== "none"){
-      banner.textContent = "✅ عاد الاتصال بالإنترنت";
-      banner.style.background = "#0a1a0a";
-      banner.style.borderColor = "#22c55e";
-      banner.style.color = "#22c55e";
-      setTimeout(()=>{ banner.style.display="none"; banner.style.background=""; banner.style.borderColor=""; banner.style.color=""; }, 2500);
-    }
-  }
-}
-window.addEventListener("online",  _updateOnlineStatus);
-window.addEventListener("offline", _updateOnlineStatus);
-
-// ════════════════════════════════════════
-// ── 3. واصل القراءة ──
-// ════════════════════════════════════════
-window.loadContinueReading = async () => {
-  const CU = window.CU;
-  if(!CU) return;
-  const {db,getDocs,getDoc,doc,collection,query,where,orderBy,limit} = _fb();
-  if(!db) return;
-  const sec  = document.getElementById("continue-reading-sec");
-  const list = document.getElementById("continue-reading-list");
-  if(!sec || !list) return;
-  try{
-    const snap = await getDocs(query(
-      collection(db,"readProgress"),
-      where("uid","==",CU.uid),
-      orderBy("updatedAt","desc"),
-      limit(8)
-    ));
-    if(snap.empty){ sec.style.display="none"; return; }
-    const progList = snap.docs.map(d=>({id:d.id,...d.data()}));
-    // جلب بيانات الأعمال
-    const works = await Promise.all(progList.map(async p=>{
-      try{
-        const wSnap = await getDoc(doc(db,"works",p.workId));
-        if(!wSnap.exists()) return null;
-        return {...wSnap.data(), id:p.workId, progress:p};
-      }catch(e){ return null; }
-    }));
-    const valid = works.filter(Boolean);
-    if(!valid.length){ sec.style.display="none"; return; }
-    sec.style.display = "block";
-    list.innerHTML = valid.map(w=>{
-      const pct     = Math.min(w.progress.scrollPct||0, 100);
-      const chapter = w.progress.chapterTitle ? `📖 ${w.progress.chapterTitle}` : "";
-      const ago     = w.progress.updatedAt?.toDate ? _crAgo(w.progress.updatedAt.toDate()) : "";
-      const cover   = w.coverUrl
-        ? `<img class="cr-cover" src="${w.coverUrl}" alt="" loading="lazy">`
-        : `<div class="cr-cover-def">${["رواية","كتاب"].includes(w.type)?"📖":"📚"}</div>`;
-      return `<div class="cr-card" onclick="openWork('${w.id}')">
-        ${cover}
-        <div class="cr-info">
-          <div class="cr-title">${w.title||"عمل"}</div>
-          <div class="cr-meta">${chapter?`<span>${chapter}</span>`:""} ${ago?`<span style="opacity:.6">• ${ago}</span>`:""}</div>
-          <div class="cr-progress-wrap"><div class="cr-progress-bar" style="width:${pct}%"></div></div>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.4rem;flex-shrink:0">
-          <span class="cr-badge">${Math.round(pct)}%</span>
-          <span style="font-size:.68rem;color:var(--mu)">${w.type||""}</span>
-        </div>
-      </div>`;
-    }).join("");
-  }catch(e){ sec.style.display="none"; }
-};
-
-function _crAgo(d){
-  const s=Math.floor((Date.now()-d)/1000);
-  if(s<60) return "الآن";
-  if(s<3600) return "منذ "+Math.floor(s/60)+"د";
-  if(s<86400) return "منذ "+Math.floor(s/3600)+"س";
-  return "منذ "+Math.floor(s/86400)+" يوم";
-}
-
-// ════════════════════════════════════════
-// ── 4. لوحة إحصائيات المبدع ──
-// ════════════════════════════════════════
-window.loadCreatorAnalytics = async () => {
-  const CU=window.CU; if(!CU) return;
-  const {db,getDocs,collection,query,where}=_fb(); if(!db) return;
-  const box=document.getElementById("creator-analytics"); if(!box) return;
-  box.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:1.2rem;color:rgba(255,255,255,.4)"><span class="spin">⏳</span></div>';
-  try{
-    const snap=await getDocs(query(collection(db,"works"),where("authorId","==",CU.uid)));
-    const works=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(!works.length){ box.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:1rem;color:rgba(255,255,255,.3);font-size:.82rem">لم تنشر أي عمل بعد 📭</div>'; return; }
-    const tv=works.reduce((s,w)=>s+(w.views||0),0);
-    const tl=works.reduce((s,w)=>s+(w.likes||0),0);
-    const tb=works.reduce((s,w)=>s+(w.bookmarkCount||0),0);
-    const tr=works.reduce((s,w)=>s+(w.ratingCount||0),0);
-    const rated=works.filter(w=>w.rating);
-    const avg=rated.length?(rated.reduce((s,w)=>s+(w.rating||0),0)/rated.length).toFixed(1):"—";
-    const top=[...works].sort((a,b)=>(b.views||0)-(a.views||0))[0];
-    const hc=works.filter(w=>w.humanBadge).length;
-    const fmt=n=>n>=1000?(n/1000).toFixed(1)+"K":String(n);
-    box.innerHTML=`
-      <div class="analytics-card"><div class="an">👁 ${fmt(tv)}</div><div class="al">المشاهدات</div></div>
-      <div class="analytics-card"><div class="an">❤️ ${fmt(tl)}</div><div class="al">الإعجابات</div></div>
-      <div class="analytics-card"><div class="an">🔖 ${fmt(tb)}</div><div class="al">الحفظ</div></div>
-      <div class="analytics-card"><div class="an">⭐ ${avg}</div><div class="al">متوسط التقييم</div></div>
-      <div class="analytics-card"><div class="an">📊 ${tr}</div><div class="al">التقييمات</div></div>
-      <div class="analytics-card"><div class="an">🧠 ${hc}</div><div class="al">أعمال بشرية</div></div>
-      ${top?`<div class="analytics-card" style="grid-column:1/-1;background:rgba(245,166,35,.06);border-color:rgba(245,166,35,.2)">
-        <div style="font-size:.7rem;color:rgba(255,255,255,.4);margin-bottom:.3rem">🏆 الأكثر مشاهدة</div>
-        <div style="font-weight:800;color:var(--gold)">${top.title||""}</div>
-        <div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:.2rem">👁 ${fmt(top.views||0)} • ❤️ ${top.likes||0}</div>
-      </div>`:""}`;
-  }catch(e){ box.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:1rem;color:rgba(255,255,255,.3)">❌ خطأ في التحميل</div>'; }
-};
-
-// تحميل تلقائي عند فتح الصفحة الشخصية
-(function(){
-  const orig=window.loadProfile;
-  if(typeof orig==="function"){
-    window.loadProfile=async function(){
-      const r=await orig.apply(this,arguments);
-      setTimeout(()=>{ window.loadCreatorAnalytics&&window.loadCreatorAnalytics(); },700);
-      return r;
-    };
-  }
-})();
-
-// ════════════════════════════════════════
-// ── 5. PWA - زر التثبيت ──
-// ════════════════════════════════════════
-let _pwaPrompt = null;
-window.addEventListener("beforeinstallprompt", e => {
-  e.preventDefault();
-  _pwaPrompt = e;
-  // إظهار زر التثبيت في الـ sidebar
-  const btn = document.getElementById("pwa-install-btn");
-  if(btn) btn.style.display = "flex";
-});
-
-window.installPWA = async () => {
-  if(!_pwaPrompt) return;
-  _pwaPrompt.prompt();
-  const result = await _pwaPrompt.userChoice;
-  if(result.outcome === "accepted"){
-    typeof toast==="function" && toast("✅ تم تثبيت MangaVerse كتطبيق!");
-    const btn=document.getElementById("pwa-install-btn");
-    if(btn) btn.style.display="none";
-  }
-  _pwaPrompt = null;
-};
-
-window.addEventListener("appinstalled", ()=>{
-  typeof toast==="function" && toast("🎉 تم تثبيت MangaVerse بنجاح!");
-  const btn=document.getElementById("pwa-install-btn");
-  if(btn) btn.style.display="none";
-});
-
-// ════════════════════════════════════════
-// ── 6. فحص الفصول المجدولة ──
-// ════════════════════════════════════════
-async function _checkScheduled(){
-  const CU=window.CU; if(!CU) return;
-  const {db,doc,getDocs,updateDoc,collection,query,where}=_fb(); if(!db) return;
-  try{
-    const now=new Date();
-    const snap=await getDocs(query(collection(db,"chapters"),
-      where("authorId","==",CU.uid),where("scheduled","==",true),where("published","==",false)));
-    snap.forEach(async d=>{
-      const ch=d.data();
-      if(ch.scheduledAt&&new Date(ch.scheduledAt)<=now){
-        await updateDoc(doc(db,"chapters",d.id),{published:true});
-        typeof toast==="function"&&toast("📢 تم نشر «"+ch.title+"» تلقائياً!");
-      }
-    });
-  }catch(e){}
-}
-setInterval(_checkScheduled,120000);
-setTimeout(_checkScheduled,7000);
 </script>
