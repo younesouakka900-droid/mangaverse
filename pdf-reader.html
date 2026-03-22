@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0">
+<title>قارئ PDF — MangaVerse</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--red:#e8192c;--bg:#0a0a0f;--s1:#10101a;--br:rgba(255,255,255,.08);--mu:rgba(255,255,255,.45);--gold:#f5a623;}
+body{background:var(--bg);color:#f0f0f0;font-family:'Tajawal',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── شريط العلوي ── */
+#topbar{height:52px;background:rgba(10,10,15,.97);border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;padding:0 .8rem;gap:.6rem;flex-shrink:0;backdrop-filter:blur(10px);}
+#pdf-title{font-size:.88rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;color:#e8e0d4;}
+.tb-btn{background:rgba(255,255,255,.07);border:1px solid var(--br);color:rgba(255,255,255,.7);border-radius:8px;padding:.35rem .7rem;font-size:.78rem;cursor:pointer;white-space:nowrap;font-family:'Tajawal';transition:all .2s;display:flex;align-items:center;gap:.3rem;}
+.tb-btn:hover{background:rgba(255,255,255,.12);color:#fff;}
+.tb-btn.red{background:rgba(232,25,44,.15);border-color:rgba(232,25,44,.4);color:var(--red);}
+.tb-btn.red:hover{background:rgba(232,25,44,.25);}
+
+/* ── شريط التقدم ── */
+#progress-bar-wrap{height:3px;background:rgba(255,255,255,.06);flex-shrink:0;}
+#progress-bar{height:100%;background:linear-gradient(90deg,var(--red),var(--gold));width:0%;transition:width .3s;}
+
+/* ── منطقة القراءة ── */
+#reader-wrap{flex:1;overflow-y:auto;overflow-x:hidden;background:#111;display:flex;flex-direction:column;align-items:center;padding:0;}
+#reader-wrap::-webkit-scrollbar{width:4px;}
+#reader-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+
+/* ── الكانفاس ── */
+.pdf-page-wrap{width:100%;max-width:900px;position:relative;}
+.pdf-page-wrap canvas{width:100%;display:block;}
+.page-num-badge{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.6);color:rgba(255,255,255,.5);font-size:.65rem;padding:.2rem .5rem;border-radius:4px;}
+
+/* ── شريط التنقل ── */
+#navbar{height:52px;background:rgba(10,10,15,.97);border-top:1px solid var(--br);display:flex;align-items:center;justify-content:center;gap:.8rem;flex-shrink:0;}
+.nav-btn{background:rgba(255,255,255,.07);border:1px solid var(--br);color:#fff;width:40px;height:36px;border-radius:8px;cursor:pointer;font-size:1rem;transition:all .2s;display:flex;align-items:center;justify-content:center;}
+.nav-btn:hover:not(:disabled){background:var(--red);border-color:var(--red);}
+.nav-btn:disabled{opacity:.3;cursor:not-allowed;}
+#page-info{font-size:.85rem;color:var(--mu);min-width:70px;text-align:center;font-weight:700;}
+#zoom-lbl{font-size:.75rem;color:var(--mu);min-width:40px;text-align:center;}
+
+/* ── Loading ── */
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;z-index:100;}
+.spinner{width:44px;height:44px;border:3px solid rgba(232,25,44,.2);border-top-color:var(--red);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading-text{font-size:.9rem;color:var(--mu);}
+#loading-pct{font-size:1.4rem;font-weight:800;color:var(--red);}
+
+/* ── خطأ ── */
+#error-screen{display:none;position:fixed;inset:0;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:2rem;text-align:center;z-index:100;}
+#error-screen.show{display:flex;}
+#error-icon{font-size:3.5rem;}
+#error-msg{font-size:.9rem;color:var(--mu);max-width:300px;line-height:1.7;}
+.err-btn{background:var(--red);color:#fff;border:none;padding:.75rem 2rem;border-radius:12px;font-family:'Tajawal';font-size:.95rem;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;}
+
+/* ── وضع الصفحة المفردة ── */
+#single-page-wrap{width:100%;max-width:900px;margin:0 auto;}
+
+/* ── مؤشر الصفحة الحالية ── */
+#current-page-indicator{position:fixed;top:62px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:rgba(255,255,255,.6);font-size:.72rem;padding:.2rem .6rem;border-radius:20px;pointer-events:none;opacity:0;transition:opacity .3s;z-index:50;}
+#current-page-indicator.show{opacity:1;}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- شاشة التحميل -->
+<div id="loading">
+  <div class="spinner"></div>
+  <div id="loading-pct">0%</div>
+  <div id="loading-text">جاري تحميل الملف...</div>
+</div>
+
+<!-- شاشة الخطأ -->
+<div id="error-screen">
+  <div id="error-icon">📄</div>
+  <div style="font-weight:800;font-size:1.1rem;color:#e8e0d4" id="error-title">تعذّر فتح الملف</div>
+  <div id="error-msg">يمكن فتح هذا الملف عبر تطبيق PDF على جهازك</div>
+  <a id="direct-link" href="#" class="err-btn" target="_blank">📥 افتح PDF مباشرة</a>
+  <button onclick="history.back()" style="background:transparent;border:1px solid var(--br);color:var(--mu);padding:.6rem 1.5rem;border-radius:10px;font-family:'Tajawal';cursor:pointer;margin-top:.3rem">← رجوع</button>
+</div>
+
+<!-- مؤشر الصفحة -->
+<div id="current-page-indicator"></div>
+
+<!-- شريط العلوي -->
+<div id="topbar" style="display:none">
+  <button class="tb-btn red" onclick="history.back()">← رجوع</button>
+  <span id="pdf-title">جاري التحميل...</span>
+  <div style="display:flex;gap:.4rem">
+    <button class="tb-btn" onclick="toggleMode()" id="mode-btn" title="تبديل وضع القراءة">📜 عمودي</button>
+    <button class="tb-btn" onclick="downloadPdf()" title="تحميل">⬇️</button>
+  </div>
+</div>
+
+<!-- شريط التقدم -->
+<div id="progress-bar-wrap" style="display:none">
+  <div id="progress-bar"></div>
+</div>
+
+<!-- منطقة القراءة -->
+<div id="reader-wrap" style="display:none"></div>
+
+<!-- شريط التنقل -->
+<div id="navbar" style="display:none">
+  <button class="nav-btn" id="prev-btn" onclick="prevPage()" disabled>›</button>
+  <button class="nav-btn" id="zoom-out" onclick="changeZoom(-0.1)">−</button>
+  <span id="page-info">0 / 0</span>
+  <button class="nav-btn" id="zoom-in" onclick="changeZoom(0.1)">+</button>
+  <button class="nav-btn" id="next-btn" onclick="nextPage()" disabled>‹</button>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// قارئ PDF المنفصل — MangaVerse
+// ════════════════════════════════════════
+
+const params   = new URLSearchParams(location.search);
+const PDF_URL  = params.get("url")  || "";
+const PDF_TITLE= decodeURIComponent(params.get("title") || "مستند PDF");
+const MODE_KEY = "mv_pdf_mode";
+
+let pdfDoc     = null;
+let totalPages = 0;
+let currentPage= 1;
+let zoom       = 1.0;
+let renderMode = localStorage.getItem(MODE_KEY) || "scroll"; // scroll | paged
+let rendering  = false;
+let renderQueue= null;
+
+// ── تهيئة ──
+document.getElementById("pdf-title").textContent = PDF_TITLE;
+document.title = PDF_TITLE + " — MangaVerse";
+if(PDF_URL) document.getElementById("direct-link").href = PDF_URL;
+
+// ── تحميل PDF.js ──
+async function loadPdfJs(){
+  return new Promise((res,rej)=>{
+    if(window.pdfjsLib){ res(); return; }
+    const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    s.onload=()=>{
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc=
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      res();
+    };
+    s.onerror=rej;
+    document.head.appendChild(s);
+  });
+}
+
+// ── جلب الملف ──
+async function fetchPdf(url){
+  // محاولة 1: fetch مع cors
+  try{
+    const r=await fetch(url,{mode:"cors",credentials:"omit"});
+    if(r.ok) return new Uint8Array(await r.arrayBuffer());
+  }catch(e){}
+  // محاولة 2: fetch عادي
+  try{
+    const r=await fetch(url);
+    if(r.ok) return new Uint8Array(await r.arrayBuffer());
+  }catch(e){}
+  // محاولة 3: أعطِ الرابط مباشرة
+  return url;
+}
+
+// ── البدء ──
+async function init(){
+  if(!PDF_URL){ showError("لم يتم تحديد رابط الملف","❓"); return; }
+
+  try{
+    setLoadingText("جاري تحميل محرك PDF...", 10);
+    await loadPdfJs();
+
+    setLoadingText("جاري تحميل الملف...", 30);
+    const pdfData = await fetchPdf(PDF_URL);
+
+    setLoadingText("جاري معالجة الملف...", 60);
+    const loadingTask = window.pdfjsLib.getDocument({
+      data:  pdfData instanceof Uint8Array ? pdfData : undefined,
+      url:   pdfData instanceof Uint8Array ? undefined : pdfData,
+      cMapUrl:"https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/",
+      cMapPacked:true,
+      standardFontDataUrl:"https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/",
+      withCredentials:false,
+    });
+
+    loadingTask.onProgress = ({loaded, total}) => {
+      if(total > 0) setLoadingPct(Math.round(60 + (loaded/total)*35));
+    };
+
+    pdfDoc = await loadingTask.promise;
+    totalPages = pdfDoc.numPages;
+
+    setLoadingPct(100);
+    setLoadingText("جاهز!", 100);
+
+    setTimeout(()=>{
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("topbar").style.display = "flex";
+      document.getElementById("progress-bar-wrap").style.display = "block";
+      document.getElementById("reader-wrap").style.display = "flex";
+      document.getElementById("navbar").style.display = "flex";
+      updateNav();
+      if(renderMode === "scroll") renderAllPages();
+      else renderSinglePage(1);
+    }, 300);
+
+  }catch(e){
+    showError("تعذّر فتح الملف\nقد يكون الملف محمياً أو الرابط منتهي الصلاحية","❌");
+  }
+}
+
+function setLoadingText(txt, pct){
+  document.getElementById("loading-text").textContent = txt;
+  setLoadingPct(pct);
+}
+function setLoadingPct(pct){
+  document.getElementById("loading-pct").textContent = Math.round(pct) + "%";
+}
+
+// ── رسم صفحة واحدة ──
+async function renderOnePage(pageNum, container){
+  const page = await pdfDoc.getPage(pageNum);
+  const vw   = Math.min(document.getElementById("reader-wrap").clientWidth || window.innerWidth, 900);
+  const dpr  = window.devicePixelRatio || 1;
+  const base = (vw / page.getViewport({scale:1}).width) * zoom;
+  const vp   = page.getViewport({scale: base * dpr});
+
+  const canvas = document.createElement("canvas");
+  canvas.width  = vp.width;
+  canvas.height = vp.height;
+  canvas.style.width  = (vp.width  / dpr) + "px";
+  canvas.style.height = (vp.height / dpr) + "px";
+  canvas.style.display= "block";
+  canvas.style.width  = "100%";
+
+  const wrap = document.createElement("div");
+  wrap.className = "pdf-page-wrap";
+  wrap.dataset.page = pageNum;
+
+  const badge = document.createElement("div");
+  badge.className = "page-num-badge";
+  badge.textContent = pageNum + " / " + totalPages;
+
+  wrap.appendChild(canvas);
+  wrap.appendChild(badge);
+  container.appendChild(wrap);
+
+  await page.render({canvasContext: canvas.getContext("2d"), viewport: vp}).promise;
+}
+
+// ── وضع التمرير: رسم كل الصفحات ──
+async function renderAllPages(){
+  const wrap = document.getElementById("reader-wrap");
+  wrap.innerHTML = '<div style="text-align:center;padding:2rem;color:rgba(255,255,255,.3);font-size:.85rem"><span id="scroll-loading">⏳ جاري تحميل الصفحات...</span></div>';
+
+  // رسم أول 3 صفحات فوراً
+  wrap.innerHTML = "";
+  for(let i=1; i<=Math.min(3,totalPages); i++){
+    await renderOnePage(i, wrap);
+  }
+
+  // باقي الصفحات بشكل lazy
+  for(let i=4; i<=totalPages; i++){
+    await renderOnePage(i, wrap);
+  }
+
+  updateScrollProgress();
+  wrap.addEventListener("scroll", updateScrollProgress, {passive:true});
+  document.getElementById("navbar").style.display = "none";
+}
+
+// ── وضع الصفحة المفردة ──
+async function renderSinglePage(num){
+  if(rendering){ renderQueue = num; return; }
+  rendering = true;
+  const wrap = document.getElementById("reader-wrap");
+  wrap.innerHTML = '<div style="text-align:center;padding:3rem;color:rgba(255,255,255,.3)"><div class="spinner" style="margin:0 auto"></div></div>';
+  currentPage = num;
+  await renderOnePage(num, wrap);
+  updateNav();
+  rendering = false;
+  if(renderQueue !== null){ const q=renderQueue; renderQueue=null; renderSinglePage(q); }
+}
+
+function updateNav(){
+  document.getElementById("page-info").textContent = currentPage + " / " + totalPages;
+  document.getElementById("prev-btn").disabled = currentPage <= 1;
+  document.getElementById("next-btn").disabled = currentPage >= totalPages;
+  document.getElementById("progress-bar").style.width = (currentPage/totalPages*100) + "%";
+  document.getElementById("mode-btn").textContent = renderMode==="scroll" ? "📄 صفحة" : "📜 عمودي";
+}
+
+function updateScrollProgress(){
+  const w=document.getElementById("reader-wrap");
+  const pct = w.scrollHeight > w.clientHeight
+    ? Math.round((w.scrollTop/(w.scrollHeight-w.clientHeight))*100) : 0;
+  document.getElementById("progress-bar").style.width = pct + "%";
+
+  // تحديث رقم الصفحة الحالية
+  const pages = w.querySelectorAll(".pdf-page-wrap");
+  pages.forEach(p=>{
+    const rect=p.getBoundingClientRect();
+    if(rect.top <= 100 && rect.bottom >= 0){
+      const n = parseInt(p.dataset.page);
+      document.getElementById("page-info").textContent = n + " / " + totalPages;
+    }
+  });
+}
+
+// ── التنقل ──
+function prevPage(){ if(currentPage>1) renderSinglePage(currentPage-1); }
+function nextPage(){ if(currentPage<totalPages) renderSinglePage(currentPage+1); }
+
+// ── الزوم ──
+function changeZoom(delta){
+  zoom = Math.max(0.5, Math.min(3, zoom+delta));
+  document.getElementById("zoom-lbl") && (document.getElementById("zoom-lbl").textContent = Math.round(zoom*100)+"%");
+  if(renderMode==="scroll") renderAllPages();
+  else renderSinglePage(currentPage);
+}
+
+// ── تبديل الوضع ──
+function toggleMode(){
+  renderMode = renderMode==="scroll" ? "paged" : "scroll";
+  localStorage.setItem(MODE_KEY, renderMode);
+  const nav = document.getElementById("navbar");
+  nav.style.display = "flex";
+  if(renderMode==="scroll") renderAllPages();
+  else renderSinglePage(currentPage);
+  updateNav();
+}
+
+// ── تحميل ──
+function downloadPdf(){
+  const a=document.createElement("a");
+  a.href=PDF_URL; a.target="_blank"; a.rel="noopener";
+  a.download=PDF_TITLE+".pdf";
+  a.click();
+}
+
+// ── خطأ ──
+function showError(msg, icon){
+  document.getElementById("loading").style.display="none";
+  const err=document.getElementById("error-screen");
+  err.classList.add("show");
+  document.getElementById("error-icon").textContent=icon||"❌";
+  document.getElementById("error-msg").textContent=msg;
+}
+
+// ── Swipe للتنقل (وضع الصفحة) ──
+let touchX=0;
+document.addEventListener("touchstart",e=>{ touchX=e.touches[0].clientX; },{passive:true});
+document.addEventListener("touchend",e=>{
+  if(renderMode!=="paged") return;
+  const dx=e.changedTouches[0].clientX-touchX;
+  if(Math.abs(dx)>60){ dx>0?prevPage():nextPage(); }
+},{passive:true});
+
+// ── مؤشر الصفحة عند التمرير ──
+let scrollTimer;
+document.getElementById("reader-wrap").addEventListener("scroll",()=>{
+  const ind=document.getElementById("current-page-indicator");
+  const info=document.getElementById("page-info").textContent;
+  ind.textContent=info; ind.classList.add("show");
+  clearTimeout(scrollTimer);
+  scrollTimer=setTimeout(()=>ind.classList.remove("show"),1500);
+},{passive:true});
+
+// ── ابدأ ──
+init();
+</script>
+</body>
+</html>
