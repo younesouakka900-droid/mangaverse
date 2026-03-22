@@ -155,6 +155,7 @@ onAuthStateChanged(auth, async user=>{
     // ✅ أعد تحميل البطاقات عند تسجيل الدخول لضمان ظهور زر الحذف/التعديل الصحيح
     // نستخدم setTimeout لتجنب التعارض مع التحميل الأول
     setTimeout(()=>{ loadWorks(); loadHeroSlider(); loadTrending(); }, 500);
+    setTimeout(()=>{ typeof window.loadContinueReading==="function"&&window.loadContinueReading(); }, 1200);
     if(window._curPage==="profile") loadProfile();
     if(window._curPage==="library") loadLibrary();
   } else {
@@ -165,7 +166,7 @@ onAuthStateChanged(auth, async user=>{
     // أوقف المستمع عند تسجيل الخروج
     if(window._notifUnsub) { window._notifUnsub(); window._notifUnsub=null; }
     updateNavUI(false);
-    // ✅ أعد تحميل البطاقات لإخفاء أزرار المدير عند الخروج
+    const _crs=document.getElementById('continue-reading-sec');if(_crs)_crs.style.display='none';
     loadWorks();
   }
 });
@@ -352,10 +353,11 @@ window.doPublish=async()=>{
   const now = Date.now();
   if(now - _lastPublishTime < 30000) return toast("⚠️ انتظر 30 ثانية بين كل نشر وآخر","w");
   const title=V("w-title"),type=V("w-type"),genre=V("w-genre"),desc=V("w-desc"),status=V("w-status");
+  const humanBadge=document.getElementById("w-human-badge")?.checked||false;
   const coverFile=G("w-cover-file").files[0];
   const pdfFile=G("w-pdf-file").files[0];
   const extUrl=V("w-url");
-  const supportUrl=V("w-support"),audioUrl=V("w-audio"),trailerUrl=V("w-trailer");
+  const supportUrl=V("w-support"),audioUrl=V("w-audio"),rssUrl=V("w-rss")||"",trailerUrl=V("w-trailer");
   const pagesFiles=G("w-pages").files;
   const novelContent = (G("w-novel-content")?.value||"").trim();
   const isNovelType = ["رواية","كتاب"].includes(type);
@@ -403,18 +405,19 @@ window.doPublish=async()=>{
       status:status||"مستمر", coverUrl,
       fileUrl, fileName, fileType, pages,
       novelContent: novelContent||"",
-      supportUrl, audioUrl, trailerUrl,
+      supportUrl, audioUrl, rssUrl, trailerUrl,
       authorId:CU.uid, authorName:CU.displayName,
       authorAvatar:CUD?.avatarUrl||"", authorVerified:CUD?.verified||false,
       authorPoints:CUD?.points||0,
       createdAt:serverTimestamp(),
+      humanBadge,
       views:0, likes:0, bookmarkCount:0,
       rating:0, ratingCount:0, ratings:{}, comments:[]
     });
     await setDoc(doc(db,"users",CU.uid),{worksCount:increment(1)},{merge:true});
     updateUserPoints(CU.uid);
-    ["w-title","w-desc","w-url","w-support","w-audio","w-trailer","w-novel-content"].forEach(id=>{const el=G(id);if(el)el.value="";});
-    ["w-cover-file","w-pdf-file","w-pages","w-type","w-genre"].forEach(id=>{const el=G(id);if(el)el.value="";});
+    ["w-title","w-desc","w-url","w-support","w-audio","w-rss","w-trailer","w-novel-content"].forEach(id=>{const el=G(id);if(el)el.value="";});
+    ["w-cover-file","w-pdf-file","w-pages","w-type","w-genre"].forEach(id=>{const el=G(id);if(el)el.value="";}); const _hb=document.getElementById("w-human-badge");if(_hb)_hb.checked=false;
     const ws=G("w-status"); if(ws) ws.value="مستمر";
     G("cover-prev")?.style&&(G("cover-prev").style.display="none");
     G("pages-count").textContent="";
@@ -746,7 +749,7 @@ function workCard(w){
       </div>
       <button class="wc-share-btn" onclick="shareWork(event,'${w.id}','${escapedTitle}')" title="مشاركة الرابط">🔗</button>
     </div>
-    <div class="work-title">${safeTitle} ${w.authorVerified?'<span class="vbadge-sm">✦</span>':''}</div>
+    <div class="work-title">${safeTitle} ${w.authorVerified?'<span class="vbadge-sm">✦</span>':''} ${w.humanBadge?'<span style="font-size:.7rem;vertical-align:middle" title="إبداع بشري 100%">🧠✍️</span>':''}</div>
     <div class="work-meta">
       <span style="cursor:pointer" onclick="event.stopPropagation();openPublicProfile('${w.authorId}')">✍️ <span class="${getNameGlowClass({points:w.authorPoints||0,isAdmin:w.authorId==='admin'})}">${safeAuthor}</span></span>
       <span style="color:var(--mu);font-size:.78rem">👁 ${w.views||0}</span>
@@ -791,6 +794,7 @@ window.openWork=async id=>{
   // XSS-safe: نستخدم textContent للبيانات القادمة من المستخدمين
   const titleEl = G("wm-title");
   titleEl.textContent = w.title||"";
+  if(w.humanBadge){const hb=document.createElement("span");hb.title="إبداع بشري 100%";hb.style.cssText="display:inline-flex;align-items:center;gap:.3rem;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:#10b981;font-size:.62rem;font-weight:800;padding:.15rem .55rem;border-radius:20px;vertical-align:middle;margin-right:.4rem;";hb.textContent="🧠✍️ إبداع بشري";titleEl.appendChild(hb);}
   const badge = document.createElement("span");
   badge.className = `status-badge ${statusClass(w.status)}`;
   badge.textContent = w.status||"مستمر";
@@ -926,7 +930,21 @@ window.openWork=async id=>{
     ex+=`<a href="${_safeUrl(w.fileUrl)}" target="_blank" rel="noopener noreferrer" class="wa-btn wa-download">${_dlLabel(w.type)}</a>`;
   }
   if(w.supportUrl) ex+=`<a href="${_safeUrl(w.supportUrl)}" target="_blank" rel="noopener noreferrer" class="wa-btn wa-support">💰 ادعم المبدع</a>`;
-  if(w.audioUrl)   ex+=`<a href="${_safeUrl(w.audioUrl)}"   target="_blank" rel="noopener noreferrer" class="wa-btn wa-audio">🎧 استمع للقصة</a>`;
+  const podcastPlayer=G("wm-podcast-player"),audioPlayer=G("wm-audio-player");
+  if(podcastPlayer) podcastPlayer.style.display="none";
+  if(audioPlayer)   audioPlayer.style.display="none";
+  if(w.rssUrl&&podcastPlayer){
+    podcastPlayer.style.display="block";
+    if(G("podcast-feed-title")) G("podcast-feed-title").textContent=w.title||"";
+    loadPodcastFeed(w.rssUrl);
+  } else if(w.audioUrl&&audioPlayer){
+    audioPlayer.style.display="block";
+    if(G("audio-track-name")) G("audio-track-name").textContent=w.title||"";
+    const isDirect=/\.(mp3|ogg|wav|m4a|aac)(\?|$)/i.test(w.audioUrl)||w.audioUrl.includes("supabase");
+    if(isDirect){const ae=G("wm-audio-el");if(ae)ae.src=w.audioUrl;if(G("audio-html5-wrap"))G("audio-html5-wrap").style.display="block";if(G("audio-external-wrap"))G("audio-external-wrap").style.display="none";}
+    else{const eb=G("audio-ext-btn");if(eb)eb.href=w.audioUrl;if(G("audio-external-wrap"))G("audio-external-wrap").style.display="block";if(G("audio-html5-wrap"))G("audio-html5-wrap").style.display="none";}
+  }
+  if(w.audioUrl) ex+=`<a href="${_safeUrl(w.audioUrl)}" target="_blank" rel="noopener noreferrer" class="wa-btn wa-audio">🎧 استمع</a>`;
   if(w.trailerUrl) ex+=`<a href="${_safeUrl(w.trailerUrl)}" target="_blank" rel="noopener noreferrer" class="wa-btn wa-trailer">🎬 مشاهدة العرض</a>`;
   extras.innerHTML=ex;
 
@@ -1158,6 +1176,7 @@ async function _saveReaderProgress(w, cnt){
     try{
       await setDoc(doc(db,"readProgress",CU.uid+"_"+w.id),{
         uid: CU.uid, workId: w.id, workTitle: w.title,
+        coverUrl: w.coverUrl||"", workType: w.type||"",
         scrollPct: pct, updatedAt: serverTimestamp()
       });
     }catch(e){}
@@ -1190,74 +1209,32 @@ window.openPdfViewer = async (src, title, w) => {
   G("pdf-viewer-title").textContent = title || "";
   G("pdf-viewer-page").style.display = "flex";
   document.body.style.overflow = "hidden";
-  // تحويل الرابط قبل الاستخدام
-  const _fixedSrc = src.includes("cloudinary.com") 
-    ? src.replace("/authenticated/","/upload/").replace("/private/","/upload/")
-    : src;
-  G("pdf-download-btn").onclick = () => window.open(_fixedSrc, "_blank");
-
-  // ── تحويل رابط Cloudinary المحمي إلى عام ──
-  let pdfSrc = src;
-  if(src.includes("cloudinary.com")){
-    // تحويل authenticated → upload لجعل الملف عاماً
-    pdfSrc = src.replace("/authenticated/", "/upload/")
-               .replace("/private/", "/upload/");
+  G("pdf-download-btn").onclick = () => window.open(src, "_blank");
+  const wrap = G("pdf-canvas-wrap");
+  wrap.innerHTML = '<div style="text-align:center;padding:3rem;color:rgba(255,255,255,.5)"><span class="spin" style="font-size:2rem">⏳</span><div style="margin-top:1rem">جاري تحميل PDF...</div></div>';
+  if(!window.pdfjsLib){
+    await new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
   }
-  const isCloudinary = pdfSrc.includes("cloudinary.com");
-  const isGdrive     = pdfSrc.includes("drive.google.com") || pdfSrc.includes("docs.google.com");
-  const isBase64     = pdfSrc.startsWith("data:");
-
-  // دالة بناء رابط Google Viewer
-  const buildGViewer = (url) => `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
-
-  // للروابط الخارجية — Google Docs Viewer أولاً
-  if((isCloudinary || isGdrive) && !isBase64){
-    const viewerUrl = buildGViewer(pdfSrc);
-    G("pdf-canvas-wrap").innerHTML = `
-      <div style="text-align:center;padding:1rem 0 .5rem;color:var(--mu);font-size:.85rem">⏳ جاري تحميل PDF عبر المشاهد...</div>
-      <iframe src="${viewerUrl}"
-        style="width:100%;height:75vh;border:none;border-radius:8px;background:#fff;"
-        allowfullscreen>
-      </iframe>
-      <div style="text-align:center;margin-top:.5rem;font-size:.82rem;color:var(--mu)">
-        لم يظهر؟ 
-        <a href="${pdfSrc}" target="_blank" style="color:var(--red);font-weight:700">📥 افتح مباشرة</a>
-      </div>`;
-    return;
+  async function _loadPdfData(url){
+    if(url.startsWith("data:")||url.startsWith("blob:")) return url;
+    try{const r=await fetch(url,{method:"GET",mode:"cors"});if(!r.ok)throw new Error();return new Uint8Array(await r.arrayBuffer());}
+    catch(e){return url;}
   }
-
-  // للملفات المحلية (base64) — استخدم PDF.js
-  G("pdf-canvas-wrap").innerHTML = '<div style="text-align:center;padding:3rem;color:rgba(255,255,255,.5)"><span class="spin" style="font-size:2rem">⏳</span><div style="margin-top:1rem">جاري تحميل PDF...</div></div>';
-
-  if(!window.pdfjsLib) {
-    await new Promise((res, rej) => {
-      const s = document.createElement("script");
-      s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-      s.onload = res; s.onerror = rej;
-      document.head.appendChild(s);
+  try{
+    const pdfData=await _loadPdfData(src);
+    const loadingTask=window.pdfjsLib.getDocument({
+      data:pdfData instanceof Uint8Array?pdfData:undefined,
+      url:pdfData instanceof Uint8Array?undefined:pdfData,
+      cMapUrl:"https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/",
+      cMapPacked:true,
+      standardFontDataUrl:"https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/",
     });
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-  }
-
-  try {
-    const loadingTask = window.pdfjsLib.getDocument(src);
-    _pdfDoc = await loadingTask.promise;
-    _pdfTotal = _pdfDoc.numPages;
-    _pdfPage  = 1;
-    _updatePdfNav();
-    await _renderPdfPage(_pdfPage);
-  } catch(e) {
-    // Fallback: Google Docs Viewer
-    const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(src)}&embedded=true`;
-    G("pdf-canvas-wrap").innerHTML = `
-      <iframe src="${viewerUrl}"
-        style="width:100%;height:80vh;border:none;border-radius:8px;"
-        allowfullscreen loading="lazy">
-      </iframe>
-      <div style="text-align:center;margin-top:.5rem;font-size:.8rem;color:var(--mu)">
-        إذا لم يظهر PDF، اضغط <a href="${src}" target="_blank" style="color:var(--red)">هنا للفتح المباشر</a>
-      </div>`;
+    _pdfDoc=await loadingTask.promise;
+    _pdfTotal=_pdfDoc.numPages;_pdfPage=1;
+    _updatePdfNav();await _renderPdfPage(_pdfPage);
+  }catch(e){
+    wrap.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;gap:1.2rem;padding:2rem;text-align:center"><div style="font-size:3.5rem">📄</div><div style="font-weight:800;font-size:1.05rem;color:rgba(255,255,255,.85)">${title||"الملف"}</div><div style="font-size:.82rem;color:rgba(255,255,255,.4);max-width:280px;line-height:1.6">يمكن قراءة هذا الملف عبر تطبيق PDF على هاتفك</div><a href="${src}" target="_blank" rel="noopener" style="background:var(--red);color:#fff;padding:.9rem 2.2rem;border-radius:14px;font-family:'Tajawal';font-weight:800;font-size:1rem;text-decoration:none">📥 افتح PDF مباشرة</a></div>`;
   }
 };
 
@@ -1267,19 +1244,20 @@ async function _renderPdfPage(num) {
   const wrap = G("pdf-canvas-wrap");
   wrap.innerHTML = '<div style="text-align:center;padding:2rem;color:rgba(255,255,255,.4)"><span class="spin">⏳</span></div>';
   try {
-    const page     = await _pdfDoc.getPage(num);
-    const vw       = Math.min(window.innerWidth, 900);
-    const viewport = page.getViewport({ scale: vw / page.getViewport({scale:1}).width });
-    const canvas   = document.createElement("canvas");
-    canvas.width   = viewport.width;
-    canvas.height  = viewport.height;
-    canvas.style.cssText = "max-width:100%;border-radius:8px;box-shadow:0 4px 30px rgba(0,0,0,.5);display:block;margin:0 auto;";
-    wrap.innerHTML = "";
-    wrap.appendChild(canvas);
-    await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
-  } catch(e) { wrap.innerHTML = '<div style="color:red;text-align:center;padding:2rem">❌ خطأ في عرض الصفحة</div>'; }
-  _pdfRendering = false;
-  _updatePdfNav();
+    const page=await _pdfDoc.getPage(num);
+    const vw=Math.min(window.innerWidth,900);
+    const dpr=window.devicePixelRatio||1;
+    const baseScale=vw/page.getViewport({scale:1}).width;
+    const viewport=page.getViewport({scale:baseScale*dpr});
+    const canvas=document.createElement("canvas");
+    canvas.width=viewport.width; canvas.height=viewport.height;
+    canvas.style.width=(viewport.width/dpr)+"px"; canvas.style.height=(viewport.height/dpr)+"px";
+    canvas.style.maxWidth="100%"; canvas.style.display="block"; canvas.style.margin="0 auto";
+    canvas.style.borderRadius="8px"; canvas.style.boxShadow="0 4px 30px rgba(0,0,0,.5)";
+    wrap.innerHTML=""; wrap.appendChild(canvas);
+    await page.render({canvasContext:canvas.getContext("2d"),viewport}).promise;
+  } catch(e){ wrap.innerHTML='<div style="color:var(--red);text-align:center;padding:2rem">❌ خطأ في عرض الصفحة</div>'; }
+  _pdfRendering=false; _updatePdfNav();
 }
 
 function _updatePdfNav() {
@@ -2307,6 +2285,26 @@ function calcPoints(userData){
   const comments = (userData.totalComments||0) * 2;
   return works + views + followers + ratings + comments;
 }
+function getAutoBio(pts){
+  if(pts>=5000) return "أسطورة MangaVerse — قمة لا يبلغها إلا الخاصة 👑";
+  if(pts>=2000) return "مبدع ماسي — صنع اسمه في عالم MangaVerse 💎";
+  if(pts>=1000) return "مبدع ذهبي — موهبة استثنائية تتألق 🥇";
+  if(pts>=500)  return "مبدع فضي — يصنع طريقه نحو القمة 🥈";
+  if(pts>=200)  return "مبدع برونزي — موهبة في طور النمو 🥉";
+  if(pts>=50)   return "قارئ نشيط يخطو أولى خطواته ⭐";
+  if(pts>=10)   return "متدرب واعد في MangaVerse 📖";
+  return "مبدع جديد في MangaVerse 🎨";
+}
+function smartBio(userData,pts){
+  const bio=userData.bio||"";
+  const defaults=["مبدع جديد في MangaVerse 🎨","متدرب واعد في MangaVerse 📖",
+    "قارئ نشيط يخطو أولى خطواته ⭐","مبدع برونزي — موهبة في طور النمو 🥉",
+    "مبدع فضي — يصنع طريقه نحو القمة 🥈","مبدع ذهبي — موهبة استثنائية تتألق 🥇",
+    "مبدع ماسي — صنع اسمه في عالم MangaVerse 💎",
+    "أسطورة MangaVerse — قمة لا يبلغها إلا الخاصة 👑","لا توجد نبذة بعد",""];
+  if(!bio||defaults.includes(bio)) return getAutoBio(pts);
+  return bio;
+}
 
 function badgeHTML(pts, size="sm"){
   const b = getBadge(pts);
@@ -2375,7 +2373,7 @@ window.openPublicProfile = async (uid) => {
     const _ppEmail = d.email || (window.CU?.email) || "";
     G("pp-name").innerHTML = glowName(sanitize(d.name||""), {...d, points:_ppPts, email:_ppEmail}, d.verified||false);
     G("pp-username").textContent   = d.username || "";
-    G("pp-bio").textContent        = d.bio || "لا توجد نبذة بعد";
+    G("pp-bio").textContent        = smartBio(d, _ppPts);
     G("pp-location").textContent   = d.location ? "📍 "+d.location : "";
     G("pp-followers").textContent  = (d.followers||[]).length;
     G("pp-following").textContent  = (d.following||[]).length;
@@ -2463,7 +2461,7 @@ window.loadProfile=async()=>{
   const d=s.exists()?s.data():{};
   const _pPts = d.points !== undefined ? d.points : calcPoints(d); G("p-name").innerHTML = glowName(sanitize(d.name||CU.displayName||""), {...d, points:_pPts, email:CU.email||""}, d.verified||false);
   G("p-user").textContent=d.username||"@user";
-  G("p-bio").textContent=d.bio||"لا توجد نبذة بعد";
+  G("p-bio").textContent=smartBio(d,_pPts);
   G("p-loc").textContent=d.location||"غير محدد";
   G("p-email").textContent=CU.email||"";
   G("p-followers").textContent=(d.followers||[]).length;
@@ -2685,7 +2683,7 @@ window.doSearch=()=>{
 };
 
 // ─── البحث المتقدم ───
-window._advFilters = { type:"all", genre:"all", status:"all", sort:"newest", rating:"all" };
+window._advFilters = { type:"all", genre:"all", status:"all", sort:"newest", rating:"all", humanOnly:false };
 
 window.toggleAdvFilters = () => {
   const panel = G("adv-filters-panel");
@@ -2786,6 +2784,7 @@ window.loadWorksAdvanced = async (searchQ, filters) => {
     if(filters.genre  !== "all") works = works.filter(w => w.genre  === filters.genre);
     if(filters.status !== "all") works = works.filter(w => w.status === filters.status);
     if(filters.rating !== "all") works = works.filter(w => (w.rating||0) >= parseFloat(filters.rating));
+    if(filters.humanOnly) works = works.filter(w => w.humanBadge === true);
     if(filters.sort === "rating") works.sort((a,b)=>(b.rating||0)-(a.rating||0));
     if(searchQ){
       works = works.filter(w =>
@@ -4974,6 +4973,30 @@ body.light-mode .stab:hover{color:var(--red);}
 .novel-pub-wrap.show{display:block;}
 #w-novel-content{min-height:260px;resize:vertical;font-family:'Tajawal';font-size:.95rem;line-height:1.9;direction:rtl;}
 .novel-char-count{font-size:.73rem;color:var(--mu);text-align:left;margin-top:.3rem;}
+/* ── بطاقات الإحصائيات ── */
+.analytics-card{background:rgba(255,255,255,.03);border:1px solid var(--br);border-radius:14px;padding:1rem 1.2rem;transition:border-color .2s;}
+.analytics-card:hover{border-color:rgba(232,25,44,.3);}
+.analytics-card .an{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--red);line-height:1;}
+.analytics-card .al{font-size:.7rem;color:var(--mu);margin-top:.2rem;}
+/* ── واصل القراءة ── */
+.cr-card{display:flex;align-items:center;gap:.9rem;background:rgba(255,255,255,.03);border:1px solid var(--br);border-radius:14px;padding:.8rem 1rem;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;}
+.cr-card:hover{border-color:rgba(232,25,44,.3);background:rgba(232,25,44,.04);transform:translateX(-3px);}
+.cr-card::before{content:'';position:absolute;right:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--red),var(--gold));border-radius:0 14px 14px 0;opacity:0;transition:opacity .25s;}
+.cr-card:hover::before{opacity:1;}
+.cr-cover{width:48px;height:64px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--br);}
+.cr-cover-def{width:48px;height:64px;border-radius:8px;background:var(--s2);border:1px solid var(--br);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;}
+.cr-info{flex:1;min-width:0;}
+.cr-title{font-weight:800;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:.2rem;}
+.cr-meta{font-size:.74rem;color:var(--mu);}
+.cr-progress-wrap{height:4px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:.5rem;overflow:hidden;}
+.cr-progress-bar{height:100%;background:linear-gradient(90deg,var(--red),var(--gold));border-radius:2px;transition:width .6s ease;}
+.cr-badge{flex-shrink:0;background:rgba(232,25,44,.12);border:1px solid rgba(232,25,44,.3);color:var(--red);font-size:.68rem;font-weight:800;padding:.2rem .6rem;border-radius:20px;white-space:nowrap;}
+/* ── 404 ── */
+#page-404{display:none;}#page-404.active{display:flex!important;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}
+/* ── Back to top ── */
+#back-to-top{display:none;}#back-to-top.visible{display:flex!important;}
+#back-to-top:hover{transform:scale(1.1);}
 
 </style>
 <link rel="manifest" href="/manifest.json">
@@ -5407,7 +5430,13 @@ if("serviceWorker" in navigator){
         <hr class="section-divider">
         <p style="font-size:.8rem;color:var(--mu);margin-bottom:1rem;font-weight:700">🛠️ روابط إضافية (اختيارية)</p>
         <div class="fg"><label class="opt">💰 رابط الدعم (Gumroad, KDP...)</label><input class="fc" id="w-support" type="url" placeholder="https://gumroad.com/..."></div>
-        <div class="fg"><label class="opt">🎧 رابط المحتوى الصوتي (Podeo...)</label><input class="fc" id="w-audio" type="url" placeholder="https://podeo.com/..."></div>
+        <div class="fg">
+  <label class="opt">🎧 البودكاست / المحتوى الصوتي</label>
+  <input class="fc" id="w-audio" type="url" placeholder="رابط مباشر — Podeo / Spotify / SoundCloud..." style="margin-bottom:.5rem">
+  <div style="display:flex;align-items:center;gap:.5rem;margin:.4rem 0"><div style="flex:1;height:1px;background:var(--br)"></div><span style="font-size:.72rem;color:var(--mu)">أو RSS Feed</span><div style="flex:1;height:1px;background:var(--br)"></div></div>
+  <input class="fc" id="w-rss" type="url" placeholder="رابط RSS Feed من Podeo / Anchor...">
+  <div style="font-size:.72rem;color:rgba(255,255,255,.3);margin-top:.4rem">📡 سيجلب الحلقات تلقائياً ويعرضها للقراء</div>
+</div>
         <div class="fg"><label class="opt">🎬 رابط العرض الترويجي (YouTube)</label><input class="fc" id="w-trailer" type="url" placeholder="https://youtube.com/..."></div>
       </div>
       <!-- RIGHT -->
@@ -5450,6 +5479,15 @@ if("serviceWorker" in navigator){
         </div>
       </div>
     </div>
+    <div style="margin-bottom:1rem;background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(5,150,105,.05));border:1px solid rgba(16,185,129,.25);border-radius:14px;padding:1rem 1.1rem;cursor:pointer" onclick="document.getElementById('w-human-badge').click()">
+      <div style="display:flex;align-items:center;gap:.8rem">
+        <input type="checkbox" id="w-human-badge" style="width:18px;height:18px;accent-color:#10b981;cursor:pointer;flex-shrink:0" onclick="event.stopPropagation()">
+        <div>
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem"><span>🧠✍️</span><span style="font-weight:800;font-size:.9rem;color:#10b981">إبداع بشري 100%</span><span style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:#10b981;font-size:.65rem;font-weight:800;padding:.1rem .4rem;border-radius:20px">NO AI</span></div>
+          <div style="font-size:.76rem;color:rgba(255,255,255,.45)">أؤكد أن هذا العمل كُتب ورُسم بجهد بشري خالص دون استخدام الذكاء الاصطناعي</div>
+        </div>
+      </div>
+    </div>
     <button class="sbtn" id="btn-pub" onclick="doPublish()">🚀 نشر العمل الآن</button>
   </div>
 </div>
@@ -5485,6 +5523,30 @@ if("serviceWorker" in navigator){
           <button id="wm-delete-btn" class="wa-btn" style="background:rgba(232,25,44,.1);border:1px solid rgba(232,25,44,.4);color:var(--red);">🗑️ حذف العمل</button>
         </div>
         <div class="wm-actions" id="wm-extras" style="margin-top:.5rem"></div>
+        <!-- 🎙️ مشغل البودكاست RSS -->
+        <div id="wm-podcast-player" style="display:none;margin-top:.8rem;background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(109,40,217,.06));border:1px solid rgba(139,92,246,.25);border-radius:16px;overflow:hidden">
+          <div style="padding:.9rem 1rem;display:flex;align-items:center;gap:.7rem;border-bottom:1px solid rgba(139,92,246,.15)">
+            <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🎙️</div>
+            <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:.88rem;color:#c4b5fd">البودكاست</div><div id="podcast-feed-title" style="font-size:.72rem;color:rgba(255,255,255,.4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div></div>
+            <button onclick="document.getElementById('podcast-episodes-list').style.display=document.getElementById('podcast-episodes-list').style.display==='none'?'block':'none'" style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);color:#a78bfa;font-family:'Tajawal';font-size:.75rem;padding:.3rem .7rem;border-radius:8px;cursor:pointer">📋 الحلقات</button>
+          </div>
+          <div style="padding:.8rem 1rem">
+            <div id="podcast-now-playing" style="font-size:.78rem;color:#a78bfa;margin-bottom:.5rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">اختر حلقة للاستماع</div>
+            <audio id="podcast-audio-el" controls style="width:100%;height:36px;accent-color:#8b5cf6" preload="none"></audio>
+          </div>
+          <div id="podcast-episodes-list" style="display:none;max-height:260px;overflow-y:auto;border-top:1px solid rgba(139,92,246,.15)">
+            <div style="text-align:center;padding:1rem;color:rgba(255,255,255,.3);font-size:.82rem"><span class="spin">⏳</span></div>
+          </div>
+        </div>
+        <!-- 🎧 مشغل صوت مباشر -->
+        <div id="wm-audio-player" style="display:none;margin-top:.8rem;background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(109,40,217,.06));border:1px solid rgba(139,92,246,.25);border-radius:14px;padding:1rem">
+          <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:.7rem">
+            <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0">🎧</div>
+            <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:.83rem;color:#c4b5fd">استمع للقصة</div><div id="audio-track-name" style="font-size:.7rem;color:rgba(255,255,255,.35);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div></div>
+          </div>
+          <div id="audio-html5-wrap" style="display:none"><audio id="wm-audio-el" controls style="width:100%;height:36px;accent-color:#8b5cf6" preload="metadata"></audio></div>
+          <div id="audio-external-wrap" style="display:none"><a id="audio-ext-btn" href="#" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:.6rem;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;padding:.65rem 1rem;border-radius:10px;text-decoration:none;font-family:'Tajawal';font-weight:700;font-size:.85rem">▶️ استمع الآن</a></div>
+        </div>
 
         <!-- 🚩 زر الإبلاغ -->
         <div id="wm-report-wrap" style="margin-top:.5rem;display:none">
@@ -5930,6 +5992,9 @@ if("serviceWorker" in navigator){
     <button class="sb-btn sb-btn-outline" onclick="closeSidebar();openEditProf()">✏️ تعديل الملف الشخصي</button>
     <button class="sb-btn sb-btn-outline" onclick="closeSidebar();openModal('m-customize')">🎨 تخصيص الواجهة</button>
     <button class="sb-btn sb-btn-outline" id="push-toggle-btn" onclick="window._pushEnabled?disablePush():requestPushPermission()">🔔 تفعيل إشعارات الجوال</button>
+    <button id="pwa-install-btn" onclick="installPWA()" style="display:none;width:100%;background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(99,102,241,.1));border:1px solid rgba(139,92,246,.4);color:#a78bfa;font-family:'Tajawal';font-size:.88rem;font-weight:700;padding:.65rem 1rem;border-radius:10px;cursor:pointer;align-items:center;justify-content:center;gap:.5rem;margin-bottom:.3rem">
+      📲 تثبيت كتطبيق على الهاتف
+    </button>
     <button class="sb-btn sb-btn-danger" onclick="closeSidebar();doLogout()">🚪 تسجيل الخروج</button>
     <button id="btn-delete-account" onclick="closeSidebar();deleteAccount()" style="width:100%;background:transparent;border:1px solid rgba(232,25,44,.3);color:rgba(232,25,44,.6);font-family:'Tajawal';font-size:.82rem;padding:.6rem;border-radius:10px;cursor:pointer;margin-top:.3rem;transition:all .2s" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='rgba(232,25,44,.3)';this.style.color='rgba(232,25,44,.6)'">🗑 حذف الحساب نهائياً</button>
   </div>
@@ -5967,6 +6032,24 @@ if("serviceWorker" in navigator){
 </nav>
 
 <!-- HOME PAGE -->
+<!-- زر الرجوع للأعلى -->
+<button id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="العودة للأعلى"
+  style="position:fixed;bottom:80px;left:20px;z-index:8000;width:44px;height:44px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 20px rgba(232,25,44,.4);transition:all .3s;align-items:center;justify-content:center">↑</button>
+
+<!-- رسالة انقطاع الإنترنت -->
+<div id="offline-banner" style="display:none;position:fixed;top:60px;left:0;right:0;z-index:9999;background:#1a0a00;border-bottom:2px solid #f59e0b;padding:.6rem 1rem;text-align:center;font-size:.85rem;color:#f59e0b;font-family:'Tajawal';font-weight:700">
+  ⚠️ لا يوجد اتصال بالإنترنت — بعض المميزات قد لا تعمل
+</div>
+
+<!-- صفحة 404 -->
+<div class="page" id="page-404" style="min-height:100vh;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:2rem">
+  <div style="font-size:6rem;margin-bottom:1rem;animation:float 3s ease-in-out infinite">🌌</div>
+  <div style="font-family:'Bebas Neue';font-size:5rem;color:var(--red);letter-spacing:4px;line-height:1">404</div>
+  <div style="font-size:1.2rem;font-weight:800;color:rgba(255,255,255,.8);margin:.5rem 0">الصفحة غير موجودة</div>
+  <div style="font-size:.9rem;color:var(--mu);max-width:320px;line-height:1.7;margin-bottom:2rem">يبدو أن هذا العمل أو الصفحة لا وجود لها.</div>
+  <button onclick="showPage('home')" style="background:var(--red);color:#fff;border:none;padding:.85rem 2.5rem;border-radius:12px;font-family:'Tajawal';font-size:1rem;font-weight:800;cursor:pointer">🏠 العودة للرئيسية</button>
+</div>
+
 <div class="page active" id="page-home">
   <!-- HERO SLIDER -->
   <div class="hero-slider-wrap">
@@ -5976,6 +6059,15 @@ if("serviceWorker" in navigator){
     <button class="slider-arr next" onclick="window.goSlide(_sliderIdx+1)">&#8250;</button>
   </div>
 
+  <!-- واصل القراءة -->
+  <section id="continue-reading-sec" style="display:none;padding:1.5rem 0;background:linear-gradient(180deg,rgba(232,25,44,.04),transparent);border-bottom:1px solid var(--br)">
+    <div class="cont">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+        <div><span class="stag" style="margin-bottom:.2rem;display:inline-block">📖 واصل</span><h2 class="stitle" style="margin:0;font-size:1.2rem">القراءة من حيث توقفت</h2></div>
+      </div>
+      <div id="continue-reading-list" style="display:flex;flex-direction:column;gap:.7rem"></div>
+    </div>
+  </section>
   <!-- MANIFESTO -->
   <div class="manifesto">
     <p class="manifesto-text">
@@ -6153,8 +6245,13 @@ if("serviceWorker" in navigator){
             </div>
 
           </div>
+          <div style="margin-top:.8rem;padding:.65rem 1rem;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:12px;display:flex;align-items:center;gap:.8rem;cursor:pointer" onclick="document.getElementById('adv-human-only').click()">
+            <input type="checkbox" id="adv-human-only" style="width:16px;height:16px;accent-color:#10b981;cursor:pointer" onclick="event.stopPropagation()" onchange="window._advFilters.humanOnly=this.checked;applyAdvSearch()">
+            <span style="font-size:.85rem;font-weight:700;color:#10b981">🧠✍️ إبداع بشري فقط</span>
+            <span style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#10b981;font-size:.62rem;font-weight:800;padding:.1rem .35rem;border-radius:20px;margin-right:auto">NO AI</span>
+          </div>
           <div style="display:flex;justify-content:flex-end;margin-top:.8rem">
-            <button onclick="resetAdvSearch()" style="background:transparent;border:1px solid var(--br);color:var(--mu);font-family:'Tajawal';font-size:.82rem;padding:.4rem 1rem;border-radius:8px;cursor:pointer">🗑 إعادة ضبط</button>
+            <button onclick="resetAdvSearch()"  style="background:transparent;border:1px solid var(--br);color:var(--mu);font-family:'Tajawal';font-size:.82rem;padding:.4rem 1rem;border-radius:8px;cursor:pointer">🗑 إعادة ضبط</button>
           </div>
         </div>
 
@@ -6325,6 +6422,11 @@ if("serviceWorker" in navigator){
       <div id="p-top-works" style="margin-top:1rem;display:flex;flex-direction:column;gap:.6rem"></div>
     </div>
 
+    <!-- 📊 لوحة الإحصائيات -->
+    <div style="margin-top:2rem">
+      <span class="stag">📊 إحصائياتي</span>
+      <div id="creator-analytics" style="display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem;margin-top:1rem"></div>
+    </div>
     <div style="margin-top:2rem">
       <span class="stag">أعمالي</span>
       <!-- تبويبات النوع في الصفحة الشخصية -->
@@ -6507,6 +6609,11 @@ function openModal(id){document.getElementById(id)?.classList.add('open');docume
 function closeModal(id){
   document.getElementById(id)?.classList.remove('open');
   document.body.style.overflow='';
+  if(id==='m-work'){
+    ['wm-audio-el','podcast-audio-el'].forEach(aid=>{const a=document.getElementById(aid);if(a&&!a.paused){a.pause();a.currentTime=0;}});
+    const ap=document.getElementById('wm-audio-player'),pp=document.getElementById('wm-podcast-player');
+    if(ap)ap.style.display='none';if(pp)pp.style.display='none';
+  }
   // إذا أُغلق modal العمل، ارجع لرابط الصفحة الحالية
   if(id==='m-work'){
     // ✅ إعادة ضبط قفل openWork عند الإغلاق
@@ -7268,4 +7375,157 @@ window.addEventListener('error', function(e){
   console.error('[MangaVerse] JS Error:', e.message, 'at', e.filename, ':', e.lineno);
 });
 
+</script>
+<script>
+// ════════════════════════════════════════════════════════
+// ── دوال خارج الـ module ─────────────────────────────
+// ════════════════════════════════════════════════════════
+function _fb(){
+  return {db:window._db,doc:window._doc,getDoc:window._getDoc,getDocs:window._getDocs,
+    setDoc:window._setDoc,addDoc:window._addDoc,updateDoc:window._updateDoc,
+    deleteDoc:window._deleteDoc,collection:window._collection,query:window._query,
+    where:window._where,orderBy:window._orderBy,limit:window._limit,
+    serverTimestamp:window._serverTimestamp,increment:window._increment};
+}
+
+// ── 1. زر الرجوع للأعلى ──
+window.addEventListener("scroll",()=>{const b=document.getElementById("back-to-top");if(b){if(window.scrollY>400)b.classList.add("visible");else b.classList.remove("visible");}},{passive:true});
+
+// ── 2. انقطاع الإنترنت ──
+function _onlineStatus(){
+  const b=document.getElementById("offline-banner");if(!b)return;
+  if(!navigator.onLine){b.style.display="block";}
+  else if(b.style.display!=="none"){b.textContent="✅ عاد الاتصال!";b.style.background="#0a1a0a";b.style.borderColor="#22c55e";b.style.color="#22c55e";setTimeout(()=>{b.style.display="none";b.style.background="";b.style.borderColor="";b.style.color="";},2500);}
+}
+window.addEventListener("online",_onlineStatus);
+window.addEventListener("offline",_onlineStatus);
+
+// ── 3. واصل القراءة ──
+window.loadContinueReading = async () => {
+  const CU=window.CU; if(!CU) return;
+  const {db,getDocs,getDoc,doc,collection,query,where,orderBy,limit}=_fb(); if(!db) return;
+  const sec=document.getElementById("continue-reading-sec"),list=document.getElementById("continue-reading-list");
+  if(!sec||!list) return;
+  try{
+    const snap=await getDocs(query(collection(db,"readProgress"),where("uid","==",CU.uid),orderBy("updatedAt","desc"),limit(8)));
+    if(snap.empty){sec.style.display="none";return;}
+    const works=await Promise.all(snap.docs.map(async d=>{
+      const p=d.data();
+      try{const w=await getDoc(doc(db,"works",p.workId));return w.exists()?{...w.data(),id:p.workId,progress:p}:null;}
+      catch(e){return null;}
+    }));
+    const valid=works.filter(Boolean);
+    if(!valid.length){sec.style.display="none";return;}
+    sec.style.display="block";
+    list.innerHTML=valid.map(w=>{
+      const pct=Math.min(w.progress.scrollPct||0,100);
+      const ago=w.progress.updatedAt?.toDate?_crAgo(w.progress.updatedAt.toDate()):"";
+      const ch=w.progress.chapterTitle?`📖 ${w.progress.chapterTitle}`:"";
+      const cover=w.coverUrl?`<img class="cr-cover" src="${w.coverUrl}" alt="" loading="lazy">`:`<div class="cr-cover-def">${["رواية","كتاب"].includes(w.type)?"📖":"📚"}</div>`;
+      return `<div class="cr-card" onclick="openWork('${w.id}')">${cover}<div class="cr-info"><div class="cr-title">${w.title||"عمل"}</div><div class="cr-meta">${ch?`<span>${ch}</span>`:""} ${ago?`<span style="opacity:.6">• ${ago}</span>`:""}</div><div class="cr-progress-wrap"><div class="cr-progress-bar" style="width:${pct}%"></div></div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:.4rem;flex-shrink:0"><span class="cr-badge">${Math.round(pct)}%</span><span style="font-size:.68rem;color:var(--mu)">${w.type||""}</span></div></div>`;
+    }).join("");
+  }catch(e){sec.style.display="none";}
+};
+function _crAgo(d){const s=Math.floor((Date.now()-d)/1000);if(s<60)return"الآن";if(s<3600)return"منذ "+Math.floor(s/60)+"د";if(s<86400)return"منذ "+Math.floor(s/3600)+"س";return"منذ "+Math.floor(s/86400)+" يوم";}
+
+// ── 4. إحصائيات المبدع ──
+window.loadCreatorAnalytics = async () => {
+  const CU=window.CU; if(!CU) return;
+  const {db,getDocs,collection,query,where}=_fb(); if(!db) return;
+  const box=document.getElementById("creator-analytics"); if(!box) return;
+  box.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:1.2rem;color:rgba(255,255,255,.4)"><span class="spin">⏳</span></div>';
+  try{
+    const snap=await getDocs(query(collection(db,"works"),where("authorId","==",CU.uid)));
+    const works=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(!works.length){box.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:1rem;color:rgba(255,255,255,.3);font-size:.82rem">لم تنشر أي عمل بعد 📭</div>';return;}
+    const tv=works.reduce((s,w)=>s+(w.views||0),0),tl=works.reduce((s,w)=>s+(w.likes||0),0);
+    const tb=works.reduce((s,w)=>s+(w.bookmarkCount||0),0),tr=works.reduce((s,w)=>s+(w.ratingCount||0),0);
+    const rated=works.filter(w=>w.rating);
+    const avg=rated.length?(rated.reduce((s,w)=>s+(w.rating||0),0)/rated.length).toFixed(1):"—";
+    const top=[...works].sort((a,b)=>(b.views||0)-(a.views||0))[0];
+    const hc=works.filter(w=>w.humanBadge).length;
+    const fmt=n=>n>=1000?(n/1000).toFixed(1)+"K":String(n);
+    box.innerHTML=`
+      <div class="analytics-card"><div class="an">👁 ${fmt(tv)}</div><div class="al">المشاهدات</div></div>
+      <div class="analytics-card"><div class="an">❤️ ${fmt(tl)}</div><div class="al">الإعجابات</div></div>
+      <div class="analytics-card"><div class="an">🔖 ${fmt(tb)}</div><div class="al">الحفظ</div></div>
+      <div class="analytics-card"><div class="an">⭐ ${avg}</div><div class="al">متوسط التقييم</div></div>
+      <div class="analytics-card"><div class="an">📊 ${tr}</div><div class="al">التقييمات</div></div>
+      <div class="analytics-card"><div class="an">🧠 ${hc}</div><div class="al">أعمال بشرية</div></div>
+      ${top?`<div class="analytics-card" style="grid-column:1/-1;background:rgba(245,166,35,.06);border-color:rgba(245,166,35,.2)"><div style="font-size:.7rem;color:rgba(255,255,255,.4);margin-bottom:.3rem">🏆 الأكثر مشاهدة</div><div style="font-weight:800;color:var(--gold)">${top.title||""}</div><div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:.2rem">👁 ${fmt(top.views||0)} • ❤️ ${top.likes||0}</div></div>`:""}`;
+  }catch(e){box.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:1rem;color:rgba(255,255,255,.3)">❌ خطأ في التحميل</div>';}
+};
+(function(){const o=window.loadProfile;if(typeof o==="function"){window.loadProfile=async function(){const r=await o.apply(this,arguments);setTimeout(()=>{window.loadCreatorAnalytics&&window.loadCreatorAnalytics();},700);return r;};}})();
+
+// ── 5. PWA ──
+let _pwaPrompt=null;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();_pwaPrompt=e;const b=document.getElementById("pwa-install-btn");if(b)b.style.display="flex";});
+window.installPWA=async()=>{if(!_pwaPrompt)return;_pwaPrompt.prompt();const r=await _pwaPrompt.userChoice;if(r.outcome==="accepted"){typeof toast==="function"&&toast("✅ تم تثبيت MangaVerse!");const b=document.getElementById("pwa-install-btn");if(b)b.style.display="none";}_pwaPrompt=null;};
+window.addEventListener("appinstalled",()=>{typeof toast==="function"&&toast("🎉 تم تثبيت MangaVerse!");});
+
+// ── 6. فحص الفصول المجدولة ──
+async function _checkScheduled(){
+  const CU=window.CU;if(!CU)return;
+  const {db,doc,getDocs,updateDoc,collection,query,where}=_fb();if(!db)return;
+  try{
+    const now=new Date();
+    const snap=await getDocs(query(collection(db,"chapters"),where("authorId","==",CU.uid),where("scheduled","==",true),where("published","==",false)));
+    snap.forEach(async d=>{const ch=d.data();if(ch.scheduledAt&&new Date(ch.scheduledAt)<=now){await updateDoc(doc(db,"chapters",d.id),{published:true});typeof toast==="function"&&toast("📢 تم نشر «"+ch.title+"» تلقائياً!");}});
+  }catch(e){}
+}
+setInterval(_checkScheduled,120000);setTimeout(_checkScheduled,7000);
+
+// ── 7. مشغل البودكاست RSS ──
+window.loadPodcastFeed = async (rssUrl) => {
+  const list=document.getElementById("podcast-episodes-list"),feedTitle=document.getElementById("podcast-feed-title");
+  if(!list)return;
+  list.style.display="block";
+  list.innerHTML='<div style="text-align:center;padding:1.2rem;color:rgba(255,255,255,.3);font-size:.82rem"><span class="spin">⏳</span> جاري تحميل الحلقات...</div>';
+  try{
+    const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+    const resp=await fetch(proxy);const data=await resp.json();
+    const xml=new DOMParser().parseFromString(data.contents,"text/xml");
+    const title=xml.querySelector("channel > title")?.textContent||"";
+    if(feedTitle)feedTitle.textContent=title;
+    const items=Array.from(xml.querySelectorAll("item")).slice(0,30);
+    if(!items.length){list.innerHTML='<div style="text-align:center;padding:1rem;color:rgba(255,255,255,.3);font-size:.82rem">لا توجد حلقات</div>';return;}
+    list.innerHTML=items.map((item,i)=>{
+      const et=item.querySelector("title")?.textContent||`حلقة ${i+1}`;
+      const au=item.querySelector("enclosure")?.getAttribute("url")||"";
+      const dur=item.querySelector("duration")?.textContent||"";
+      const pd=item.querySelector("pubDate")?.textContent||"";
+      const ds=pd?new Date(pd).toLocaleDateString("ar-SA",{year:"numeric",month:"short",day:"numeric"}):"";
+      const safe=s=>s.replace(/'/g,"\\'");
+      return `<div class="podcast-ep-item" onclick="playPodcastEp(this,'${safe(au)}','${safe(et)}')" style="padding:.75rem 1rem;border-bottom:1px solid rgba(139,92,246,.1);cursor:pointer;transition:background .2s;display:flex;align-items:flex-start;gap:.7rem" onmouseover="this.style.background='rgba(139,92,246,.08)'" onmouseout="this.style.background='transparent'">
+        <div style="width:34px;height:34px;border-radius:8px;background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.3);display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;color:#a78bfa;font-weight:800">${i+1}</div>
+        <div style="flex:1;min-width:0"><div style="font-size:.83rem;font-weight:700;color:#e8e0d4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:.15rem">${et}</div><div style="font-size:.68rem;color:rgba(255,255,255,.3);display:flex;gap:.6rem">${ds?`<span>📅 ${ds}</span>`:""}${dur?`<span>⏱ ${dur}</span>`:""}</div></div>
+        <div style="flex-shrink:0;color:#8b5cf6;font-size:1.1rem">▶</div>
+      </div>`;
+    }).join("");
+  }catch(e){list.innerHTML='<div style="text-align:center;padding:1.2rem;color:rgba(255,255,255,.3);font-size:.82rem">⚠️ تعذّر تحميل الحلقات</div>';}
+};
+window.playPodcastEp=(el,audioUrl,epTitle)=>{
+  document.querySelectorAll(".podcast-ep-item").forEach(e=>{e.style.background="transparent";e.style.borderRight="none";});
+  el.style.background="rgba(139,92,246,.15)";el.style.borderRight="3px solid #8b5cf6";
+  const ae=document.getElementById("podcast-audio-el"),np=document.getElementById("podcast-now-playing");
+  if(np)np.textContent="▶ "+epTitle;
+  if(ae&&audioUrl){ae.src=audioUrl;ae.play().catch(()=>{});}
+};
+
+// ── 8. رفع ملف صوتي ──
+window.handleAudioUpload=async(inp)=>{
+  const file=inp.files[0];if(!file)return;
+  if(file.size>50*1024*1024){typeof toast==="function"&&toast("⚠️ الملف أكبر من 50MB","w");inp.value="";return;}
+  const lbl=document.getElementById("audio-upload-lbl");if(lbl)lbl.textContent="⏳ جاري الرفع...";
+  try{
+    const SU="https://ahmnycfbfonmztxmwqdi.supabase.co",SK="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFobW55Y2ZiZm9ubXp0eG13cWRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjA5NDIsImV4cCI6MjA4ODgzNjk0Mn0.OT3KRneaviAoLb50ZhUe58B4tuX3BD0QODkAgBFcbWY";
+    const ext=file.name.split('.').pop(),path=`audio/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const r=await fetch(`${SU}/storage/v1/object/pdfs/${path}`,{method:"POST",headers:{"Authorization":`Bearer ${SK}`,"Content-Type":file.type,"x-upsert":"true"},body:file});
+    if(!r.ok)throw new Error();
+    const url=`${SU}/storage/v1/object/public/pdfs/${path}`;
+    const ai=document.getElementById("w-audio");if(ai)ai.value=url;
+    if(lbl)lbl.textContent=`✅ ${file.name}`;
+    typeof toast==="function"&&toast("✅ تم رفع الملف الصوتي!");
+  }catch(e){if(lbl)lbl.textContent="❌ فشل الرفع";typeof toast==="function"&&toast("❌ فشل رفع الصوت","e");}
+};
 </script>
