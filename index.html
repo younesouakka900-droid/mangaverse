@@ -352,6 +352,7 @@ window.doPublish=async()=>{
   const now = Date.now();
   if(now - _lastPublishTime < 30000) return toast("⚠️ انتظر 30 ثانية بين كل نشر وآخر","w");
   const title=V("w-title"),type=V("w-type"),genre=V("w-genre"),desc=V("w-desc"),status=V("w-status");
+  const humanBadge = document.getElementById("w-human-badge")?.checked || false;
   const coverFile=G("w-cover-file").files[0];
   const pdfFile=G("w-pdf-file").files[0];
   const extUrl=V("w-url");
@@ -408,13 +409,14 @@ window.doPublish=async()=>{
       authorAvatar:CUD?.avatarUrl||"", authorVerified:CUD?.verified||false,
       authorPoints:CUD?.points||0,
       createdAt:serverTimestamp(),
+      humanBadge,
       views:0, likes:0, bookmarkCount:0,
       rating:0, ratingCount:0, ratings:{}, comments:[]
     });
     await setDoc(doc(db,"users",CU.uid),{worksCount:increment(1)},{merge:true});
     updateUserPoints(CU.uid);
     ["w-title","w-desc","w-url","w-support","w-audio","w-trailer","w-novel-content"].forEach(id=>{const el=G(id);if(el)el.value="";});
-    ["w-cover-file","w-pdf-file","w-pages","w-type","w-genre"].forEach(id=>{const el=G(id);if(el)el.value="";});
+    ["w-cover-file","w-pdf-file","w-pages","w-type","w-genre"].forEach(id=>{const el=G(id);if(el)el.value="";}); const _hb=document.getElementById("w-human-badge"); if(_hb) _hb.checked=false;
     const ws=G("w-status"); if(ws) ws.value="مستمر";
     G("cover-prev")?.style&&(G("cover-prev").style.display="none");
     G("pages-count").textContent="";
@@ -746,7 +748,7 @@ function workCard(w){
       </div>
       <button class="wc-share-btn" onclick="shareWork(event,'${w.id}','${escapedTitle}')" title="مشاركة الرابط">🔗</button>
     </div>
-    <div class="work-title">${safeTitle} ${w.authorVerified?'<span class="vbadge-sm">✦</span>':''}</div>
+    <div class="work-title">${safeTitle} ${w.authorVerified?'<span class="vbadge-sm">✦</span>':''} ${w.humanBadge?'<span style="font-size:.72rem;vertical-align:middle" title="إبداع بشري 100%">🧠✍️</span>':''}</div>
     <div class="work-meta">
       <span style="cursor:pointer" onclick="event.stopPropagation();openPublicProfile('${w.authorId}')">✍️ <span class="${getNameGlowClass({points:w.authorPoints||0,isAdmin:w.authorId==='admin'})}">${safeAuthor}</span></span>
       <span style="color:var(--mu);font-size:.78rem">👁 ${w.views||0}</span>
@@ -791,6 +793,13 @@ window.openWork=async id=>{
   // XSS-safe: نستخدم textContent للبيانات القادمة من المستخدمين
   const titleEl = G("wm-title");
   titleEl.textContent = w.title||"";
+  if(w.humanBadge){
+    const hb=document.createElement("span");
+    hb.title="إبداع بشري 100% — بدون ذكاء اصطناعي";
+    hb.style.cssText="display:inline-flex;align-items:center;gap:.3rem;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:#10b981;font-size:.62rem;font-weight:800;padding:.15rem .55rem;border-radius:20px;vertical-align:middle;margin-right:.4rem;";
+    hb.textContent="🧠✍️ إبداع بشري";
+    titleEl.appendChild(hb);
+  }
   const badge = document.createElement("span");
   badge.className = `status-badge ${statusClass(w.status)}`;
   badge.textContent = w.status||"مستمر";
@@ -1241,7 +1250,12 @@ window.openPdfViewer = async (src, title, w) => {
   }
 
   try {
-    const loadingTask = window.pdfjsLib.getDocument(src);
+    const loadingTask = window.pdfjsLib.getDocument({
+      url: src,
+      cMapUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/",
+      cMapPacked: true,
+      standardFontDataUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/",
+    });
     _pdfDoc = await loadingTask.promise;
     _pdfTotal = _pdfDoc.numPages;
     _pdfPage  = 1;
@@ -1267,13 +1281,17 @@ async function _renderPdfPage(num) {
   const wrap = G("pdf-canvas-wrap");
   wrap.innerHTML = '<div style="text-align:center;padding:2rem;color:rgba(255,255,255,.4)"><span class="spin">⏳</span></div>';
   try {
-    const page     = await _pdfDoc.getPage(num);
-    const vw       = Math.min(window.innerWidth, 900);
-    const viewport = page.getViewport({ scale: vw / page.getViewport({scale:1}).width });
-    const canvas   = document.createElement("canvas");
-    canvas.width   = viewport.width;
-    canvas.height  = viewport.height;
-    canvas.style.cssText = "max-width:100%;border-radius:8px;box-shadow:0 4px 30px rgba(0,0,0,.5);display:block;margin:0 auto;";
+    const page      = await _pdfDoc.getPage(num);
+    const vw        = Math.min(window.innerWidth, 900);
+    const dpr       = window.devicePixelRatio || 1;
+    const baseScale = vw / page.getViewport({scale:1}).width;
+    const viewport  = page.getViewport({ scale: baseScale * dpr });
+    const canvas    = document.createElement("canvas");
+    canvas.width    = viewport.width;
+    canvas.height   = viewport.height;
+    canvas.style.width  = (viewport.width  / dpr) + "px";
+    canvas.style.height = (viewport.height / dpr) + "px";
+    canvas.style.cssText += ";max-width:100%;border-radius:8px;box-shadow:0 4px 30px rgba(0,0,0,.5);display:block;margin:0 auto;";
     wrap.innerHTML = "";
     wrap.appendChild(canvas);
     await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
@@ -2261,6 +2279,28 @@ function calcPoints(userData){
   return works + views + followers + ratings + comments;
 }
 
+function getAutoBio(pts){
+  if(pts>=5000) return "أسطورة MangaVerse — قمة لا يبلغها إلا الخاصة 👑";
+  if(pts>=2000) return "مبدع ماسي — صنع اسمه في عالم MangaVerse 💎";
+  if(pts>=1000) return "مبدع ذهبي — موهبة استثنائية تتألق 🥇";
+  if(pts>=500)  return "مبدع فضي — يصنع طريقه نحو القمة 🥈";
+  if(pts>=200)  return "مبدع برونزي — موهبة في طور النمو 🥉";
+  if(pts>=50)   return "قارئ نشيط يخطو أولى خطواته ⭐";
+  if(pts>=10)   return "متدرب واعد في MangaVerse 📖";
+  return "مبدع جديد في MangaVerse 🎨";
+}
+
+function smartBio(userData, pts){
+  const bio = userData.bio || "";
+  const defaults = ["مبدع جديد في MangaVerse 🎨","متدرب واعد في MangaVerse 📖",
+    "قارئ نشيط يخطو أولى خطواته ⭐","مبدع برونزي — موهبة في طور النمو 🥉",
+    "مبدع فضي — يصنع طريقه نحو القمة 🥈","مبدع ذهبي — موهبة استثنائية تتألق 🥇",
+    "مبدع ماسي — صنع اسمه في عالم MangaVerse 💎",
+    "أسطورة MangaVerse — قمة لا يبلغها إلا الخاصة 👑","لا توجد نبذة بعد",""];
+  if(!bio || defaults.includes(bio)) return getAutoBio(pts);
+  return bio;
+}
+
 function badgeHTML(pts, size="sm"){
   const b = getBadge(pts);
   const fs = size==="lg" ? "1rem" : ".72rem";
@@ -2328,7 +2368,7 @@ window.openPublicProfile = async (uid) => {
     const _ppEmail = d.email || (window.CU?.email) || "";
     G("pp-name").innerHTML = glowName(sanitize(d.name||""), {...d, points:_ppPts, email:_ppEmail}, d.verified||false);
     G("pp-username").textContent   = d.username || "";
-    G("pp-bio").textContent        = d.bio || "لا توجد نبذة بعد";
+    G("pp-bio").textContent        = smartBio(d, _ppPts);
     G("pp-location").textContent   = d.location ? "📍 "+d.location : "";
     G("pp-followers").textContent  = (d.followers||[]).length;
     G("pp-following").textContent  = (d.following||[]).length;
@@ -2416,7 +2456,7 @@ window.loadProfile=async()=>{
   const d=s.exists()?s.data():{};
   const _pPts = d.points !== undefined ? d.points : calcPoints(d); G("p-name").innerHTML = glowName(sanitize(d.name||CU.displayName||""), {...d, points:_pPts, email:CU.email||""}, d.verified||false);
   G("p-user").textContent=d.username||"@user";
-  G("p-bio").textContent=d.bio||"لا توجد نبذة بعد";
+  G("p-bio").textContent=smartBio(d,_pPts);
   G("p-loc").textContent=d.location||"غير محدد";
   G("p-email").textContent=CU.email||"";
   G("p-followers").textContent=(d.followers||[]).length;
@@ -2638,7 +2678,7 @@ window.doSearch=()=>{
 };
 
 // ─── البحث المتقدم ───
-window._advFilters = { type:"all", genre:"all", status:"all", sort:"newest", rating:"all" };
+window._advFilters = { type:"all", genre:"all", status:"all", sort:"newest", rating:"all", humanOnly:false };
 
 window.toggleAdvFilters = () => {
   const panel = G("adv-filters-panel");
@@ -2739,6 +2779,7 @@ window.loadWorksAdvanced = async (searchQ, filters) => {
     if(filters.genre  !== "all") works = works.filter(w => w.genre  === filters.genre);
     if(filters.status !== "all") works = works.filter(w => w.status === filters.status);
     if(filters.rating !== "all") works = works.filter(w => (w.rating||0) >= parseFloat(filters.rating));
+    if(filters.humanOnly) works = works.filter(w => w.humanBadge === true);
     if(filters.sort === "rating") works.sort((a,b)=>(b.rating||0)-(a.rating||0));
     if(searchQ){
       works = works.filter(w =>
@@ -4927,6 +4968,13 @@ body.light-mode .stab:hover{color:var(--red);}
 .novel-pub-wrap.show{display:block;}
 #w-novel-content{min-height:260px;resize:vertical;font-family:'Tajawal';font-size:.95rem;line-height:1.9;direction:rtl;}
 .novel-char-count{font-size:.73rem;color:var(--mu);text-align:left;margin-top:.3rem;}
+/* ── شارة الإبداع البشري ── */
+.human-badge-full{display:inline-flex;align-items:center;gap:.3rem;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:#10b981;font-size:.65rem;font-weight:800;padding:.18rem .6rem;border-radius:20px;vertical-align:middle;margin-right:.4rem;cursor:default;}
+/* ── بطاقات الإحصائيات ── */
+.analytics-card{background:rgba(255,255,255,.03);border:1px solid var(--br);border-radius:14px;padding:1rem 1.2rem;transition:border-color .2s;}
+.analytics-card:hover{border-color:rgba(232,25,44,.3);}
+.analytics-card .an{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--red);line-height:1;}
+.analytics-card .al{font-size:.7rem;color:var(--mu);margin-top:.2rem;}
 
 </style>
 <link rel="manifest" href="/manifest.json">
@@ -5186,21 +5234,46 @@ body.light-mode .stab:hover{color:var(--red);}
 
 <!-- ADD CHAPTER MODAL -->
 <div class="mo" id="m-add-chapter">
-  <div class="md" style="max-width:480px">
+  <div class="md" style="max-width:520px">
     <div class="mh"><h2>📚 إضافة فصل جديد</h2><button class="mclose" onclick="closeModal('m-add-chapter')">✕</button></div>
-    <div class="fg"><label>عنوان الفصل *</label>
-      <input class="mi" id="ch-title" type="text" placeholder="مثال: الفصل الأول — البداية">
+    <div class="form-2col">
+      <div class="fg"><label>رقم الفصل *</label>
+        <input class="mi" id="ch-order" type="number" min="1" value="1">
+      </div>
+      <div class="fg"><label>عنوان الفصل *</label>
+        <input class="mi" id="ch-title" type="text" placeholder="مثال: اللقاء المصيري">
+      </div>
     </div>
-    <div class="fg"><label>رقم الفصل (ترتيب)</label>
-      <input class="mi" id="ch-order" type="number" min="1" value="1">
+    <div class="fg"><label class="opt">تاريخ النشر</label>
+      <input class="mi" id="ch-pub-date" type="date">
     </div>
-    <div class="fg"><label>📸 صور الصفحات (PNG/JPG)</label>
-      <input class="mi" id="ch-pages" type="file" accept="image/*" multiple onchange="G('ch-pages-count').textContent=this.files.length+' صورة مختارة'">
-      <div id="ch-pages-count" style="font-size:.78rem;color:var(--gold);margin-top:.3rem"></div>
+    <!-- جدولة تلقائية -->
+    <div style="margin-bottom:1rem;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.2);border-radius:12px;padding:.8rem 1rem">
+      <div style="display:flex;align-items:center;gap:.6rem;cursor:pointer" onclick="document.getElementById('ch-schedule-toggle').click()">
+        <input type="checkbox" id="ch-schedule-toggle" style="accent-color:#8b5cf6;width:15px;height:15px" onclick="event.stopPropagation()" onchange="document.getElementById('ch-schedule-time-wrap').style.display=this.checked?'block':'none'">
+        <span style="font-size:.85rem;font-weight:700;color:#a78bfa">🗓 جدولة النشر تلقائياً</span>
+      </div>
+      <div id="ch-schedule-time-wrap" style="display:none;margin-top:.6rem">
+        <input class="mi" id="ch-schedule-time" type="datetime-local" style="margin:0">
+        <div style="font-size:.72rem;color:rgba(255,255,255,.3);margin-top:.3rem">⚡ سيُنشر الفصل تلقائياً في الوقت المحدد</div>
+      </div>
     </div>
-    <div style="text-align:center;color:var(--mu);font-size:.8rem;margin:.3rem 0">— أو —</div>
-    <div class="fg"><label>📄 ملف PDF</label>
-      <input class="mi" id="ch-pdf" type="file" accept="application/pdf">
+    <!-- محتوى حسب نوع العمل -->
+    <div id="ch-images-wrap">
+      <div class="fg"><label>📸 صور الصفحات (مانجا/ويبتون)</label>
+        <input class="mi" id="ch-pages" type="file" accept="image/*" multiple onchange="G('ch-pages-count').textContent=this.files.length+' صورة'">
+        <div id="ch-pages-count" style="font-size:.78rem;color:var(--gold);margin-top:.3rem"></div>
+      </div>
+      <div style="text-align:center;color:var(--mu);font-size:.8rem;margin:.3rem 0">— أو —</div>
+      <div class="fg"><label>📄 ملف PDF</label>
+        <input class="mi" id="ch-pdf" type="file" accept="application/pdf">
+      </div>
+    </div>
+    <div id="ch-text-wrap" style="display:none">
+      <div class="fg"><label>✍️ نص الفصل (رواية)</label>
+        <textarea class="mi" id="ch-text" rows="10" placeholder="اكتب نص الفصل هنا..." style="resize:vertical;line-height:1.9"></textarea>
+        <div style="font-size:.74rem;color:var(--mu);margin-top:.3rem;text-align:left" id="ch-text-count">0 حرف</div>
+      </div>
     </div>
     <button class="msub" id="btn-add-chapter" onclick="doAddChapter()">🚀 نشر الفصل</button>
   </div>
@@ -5367,6 +5440,20 @@ body.light-mode .stab:hover{color:var(--red);}
             <div class="uzi">📄</div><h4>رفع ملف PDF</h4>
             <p id="pdf-name-lbl" style="color:rgba(255,255,255,.4)">PDF — حتى 50MB</p>
           </div>
+        </div>
+      </div>
+    </div>
+    <!-- شارة الإبداع البشري -->
+    <div style="margin-bottom:1rem;background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(5,150,105,.05));border:1px solid rgba(16,185,129,.25);border-radius:14px;padding:1rem 1.1rem;cursor:pointer" onclick="document.getElementById('w-human-badge').click()">
+      <div style="display:flex;align-items:center;gap:.8rem">
+        <input type="checkbox" id="w-human-badge" style="width:18px;height:18px;accent-color:#10b981;cursor:pointer;flex-shrink:0" onclick="event.stopPropagation()">
+        <div>
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem">
+            <span style="font-size:1rem">🧠✍️</span>
+            <span style="font-weight:800;font-size:.9rem;color:#10b981">إبداع بشري 100%</span>
+            <span style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:#10b981;font-size:.65rem;font-weight:800;padding:.1rem .4rem;border-radius:20px">NO AI</span>
+          </div>
+          <div style="font-size:.76rem;color:rgba(255,255,255,.45);line-height:1.5">أؤكد أن هذا العمل كُتب ورُسم بجهد بشري خالص دون استخدام الذكاء الاصطناعي</div>
         </div>
       </div>
     </div>
@@ -6073,8 +6160,13 @@ body.light-mode .stab:hover{color:var(--red);}
             </div>
 
           </div>
+          <!-- فلتر الإبداع البشري -->
+          <div style="margin-top:.8rem;padding:.7rem 1rem;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:12px;display:flex;align-items:center;gap:.8rem;cursor:pointer" onclick="document.getElementById('adv-human-only').click()">
+            <input type="checkbox" id="adv-human-only" style="width:16px;height:16px;accent-color:#10b981;cursor:pointer" onclick="event.stopPropagation()" onchange="window._advFilters.humanOnly=this.checked;applyAdvSearch()">
+            <span style="font-size:.85rem;font-weight:700;color:#10b981">🧠✍️ إبداع بشري فقط (NO AI)</span>
+          </div>
           <div style="display:flex;justify-content:flex-end;margin-top:.8rem">
-            <button onclick="resetAdvSearch()" style="background:transparent;border:1px solid var(--br);color:var(--mu);font-family:'Tajawal';font-size:.82rem;padding:.4rem 1rem;border-radius:8px;cursor:pointer">🗑 إعادة ضبط</button>
+            <button onclick="resetAdvSearch()"  style="background:transparent;border:1px solid var(--br);color:var(--mu);font-family:'Tajawal';font-size:.82rem;padding:.4rem 1rem;border-radius:8px;cursor:pointer">🗑 إعادة ضبط</button>
           </div>
         </div>
 
@@ -6259,6 +6351,17 @@ body.light-mode .stab:hover{color:var(--red);}
       </div>
       <div class="works-grid" id="p-works-grid" style="margin-top:1rem">
         <div class="empty-state">⏳ جاري التحميل...</div>
+      </div>
+    </div>
+
+    <!-- 📊 لوحة الإحصائيات -->
+    <div style="margin-top:2rem;padding-bottom:2rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+        <span class="stag">📊 إحصائياتي</span>
+        <button onclick="loadCreatorAnalytics()" style="background:transparent;border:1px solid var(--br);color:var(--mu);font-family:'Tajawal';font-size:.78rem;padding:.3rem .8rem;border-radius:8px;cursor:pointer">🔄 تحديث</button>
+      </div>
+      <div id="creator-analytics" style="display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem">
+        <div onclick="loadCreatorAnalytics()" style="grid-column:1/-1;cursor:pointer;text-align:center;padding:1.5rem;color:var(--mu);font-size:.85rem;border:1px dashed var(--br);border-radius:14px">📊 اضغط لتحميل إحصائياتك</div>
       </div>
     </div>
   </div>
