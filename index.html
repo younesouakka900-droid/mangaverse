@@ -372,7 +372,7 @@ window.doPublish=async()=>{
   try{
     _lastPublishTime = Date.now();
     toast("⏳ جاري معالجة صورة الغلاف...");
-    const watermarkedCover = await addWatermarkToImage(coverFile);
+    const watermarkedCover = await window.addWatermarkToImage(coverFile);
     toast("⏳ جاري رفع صورة الغلاف...");
     const coverUrl = await cloudinaryUpload(watermarkedCover);
 
@@ -1069,7 +1069,7 @@ window.doEditWork=async()=>{
     const coverFile=G("ew-cover-file").files[0];
     if(coverFile){
       toast("⏳ جاري رفع الغلاف الجديد...");
-      const _wmCover = await addWatermarkToImage(coverFile);
+      const _wmCover = await window.addWatermarkToImage(coverFile);
       upd.coverUrl = await cloudinaryUpload(_wmCover);
     }
 
@@ -7412,7 +7412,7 @@ function filterWorks(btn, genre){
 }
 
 // ── Watermark على الغلاف ──
-async function addWatermarkToImage(file) {
+window.addWatermarkToImage = async function addWatermarkToImage(file) {
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
