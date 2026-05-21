@@ -5550,6 +5550,235 @@ if("serviceWorker" in navigator){
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<!-- ═══════════════════════════════════════════
+     قارئ MangaVerse الجديد (PDF + صور + نص)
+     يستبدل pdf-viewer-page و reader-page للـ PDF والصور
+════════════════════════════════════════════ -->
+<style>
+/* ── متغيرات القارئ الجديد ── */
+#mv-reader-shell {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: var(--mvrd-bg, #0d0d1a);
+  flex-direction: column;
+  overflow: hidden;
+  font-family: 'Tajawal', sans-serif;
+}
+#mv-reader-shell.open { display: flex; }
+
+/* ثيمات */
+#mv-reader-shell[data-theme="sepia"]  { --mvrd-bg:#2c1f0e; --mvrd-page:#3a2a14; --mvrd-text:#e8d5b0; --mvrd-br:rgba(232,213,176,.1); --mvrd-btn:rgba(232,213,176,.07); --mvrd-bth:rgba(232,213,176,.15); }
+#mv-reader-shell[data-theme="light"]  { --mvrd-bg:#f5f0eb; --mvrd-page:#ffffff; --mvrd-text:#1a1a1a; --mvrd-br:rgba(0,0,0,.08); --mvrd-btn:rgba(0,0,0,.05); --mvrd-bth:rgba(0,0,0,.1); }
+#mv-reader-shell[data-theme="night"]  { --mvrd-bg:#060b14; --mvrd-page:#0a1020; --mvrd-text:#c8d8f0; --mvrd-br:rgba(100,150,255,.08); --mvrd-btn:rgba(100,150,255,.06); --mvrd-bth:rgba(100,150,255,.14); }
+#mv-reader-shell                      { --mvrd-bg:#0d0d1a; --mvrd-page:#1a1a2e; --mvrd-text:rgba(255,255,255,.88); --mvrd-br:rgba(255,255,255,.07); --mvrd-btn:rgba(255,255,255,.06); --mvrd-bth:rgba(255,255,255,.12); }
+
+/* شريط الأدوات */
+#mv-topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+  padding: .6rem 1.2rem;
+  background: var(--mvrd-page);
+  border-bottom: 1px solid var(--mvrd-br);
+  flex-shrink: 0; flex-wrap: wrap; z-index: 10;
+  box-shadow: 0 2px 20px rgba(0,0,0,.3);
+}
+.mv-tb-title { font-size: 1rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; color: var(--mvrd-text); }
+.mv-tb-title span { color: var(--red); font-size: .72rem; font-weight: 700; display: block; margin-top: 1px; }
+.mv-tb-group { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
+.mv-tb-btn {
+  display: flex; align-items: center; justify-content: center; gap: .3rem;
+  padding: .42rem .8rem;
+  background: var(--mvrd-btn); border: 1px solid var(--mvrd-br); border-radius: 8px;
+  color: var(--mvrd-text); font-family: 'Tajawal'; font-size: .82rem; font-weight: 700;
+  cursor: pointer; transition: all .2s; white-space: nowrap; line-height: 1;
+}
+.mv-tb-btn:hover { background: var(--mvrd-bth); }
+.mv-tb-btn.icon-only { padding: .42rem .55rem; }
+.mv-page-counter {
+  display: flex; align-items: center; gap: .5rem;
+  background: var(--mvrd-btn); border: 1px solid var(--mvrd-br); border-radius: 8px;
+  padding: .3rem .7rem; font-size: .85rem; font-weight: 800; color: var(--mvrd-text);
+}
+.mv-page-counter input { width: 42px; background: transparent; border: none; outline: none; color: var(--red); font-family: 'Tajawal'; font-size: .9rem; font-weight: 900; text-align: center; }
+.mv-page-counter .sep { color: rgba(255,255,255,.3); }
+
+/* شريط التقدم */
+#mv-progress-bar-wrap { height: 3px; background: var(--mvrd-br); flex-shrink: 0; }
+#mv-progress-bar { height: 100%; background: linear-gradient(90deg, var(--red), #f5a623); transition: width .3s ease; width: 0%; }
+
+/* منطقة القراءة */
+#mv-reader-body { flex: 1; overflow-y: auto; overflow-x: hidden; background: var(--mvrd-bg); scroll-behavior: smooth; position: relative; }
+#mv-reader-body::-webkit-scrollbar { width: 6px; }
+#mv-reader-body::-webkit-scrollbar-thumb { background: rgba(232,25,44,.3); border-radius: 3px; }
+#mv-reader-body::-webkit-scrollbar-thumb:hover { background: rgba(232,25,44,.6); }
+
+/* حاوية PDF */
+#mv-pdf-container { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; padding: 2rem 1rem; min-height: 100%; }
+.mv-pdf-page-wrap { position: relative; box-shadow: 0 8px 40px rgba(0,0,0,.6); border-radius: 4px; overflow: hidden; background: var(--mvrd-page); max-width: 100%; }
+.mv-pdf-page-wrap canvas { display: block; max-width: 100%; height: auto !important; }
+.mv-pdf-page-num { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.55); color: rgba(255,255,255,.7); font-size: .7rem; font-weight: 700; padding: 2px 10px; border-radius: 20px; font-family: 'Tajawal'; pointer-events: none; }
+
+/* حاوية الصور */
+#mv-images-container { display: none; flex-direction: column; align-items: center; gap: 0; min-height: 100%; }
+.mv-manga-img-wrap { width: 100%; max-width: 800px; margin: 0 auto; }
+.mv-manga-img-wrap img { width: 100%; height: auto; display: block; user-select: none; -webkit-user-drag: none; }
+#mv-images-container.paged-mode { justify-content: center; align-items: center; padding: 1rem; }
+#mv-images-container.paged-mode .mv-manga-img-wrap { max-width: 600px; box-shadow: 0 8px 40px rgba(0,0,0,.6); border-radius: 4px; overflow: hidden; }
+#mv-images-container.paged-mode .mv-manga-img-wrap:not(.mv-active-page) { display: none; }
+
+/* حاوية رواية نصية */
+#mv-novel-container { display: none; max-width: 740px; margin: 0 auto; padding: 3rem 2rem 5rem; min-height: 100%; }
+#mv-novel-text { font-size: var(--mv-font-size, 18px); line-height: var(--mv-line-height, 2.1); color: var(--mvrd-text); text-align: right; direction: rtl; white-space: pre-wrap; word-break: break-word; font-weight: 400; }
+
+/* شريط الفصول */
+#mv-chapter-nav { display: none; align-items: center; justify-content: space-between; gap: .5rem; padding: .7rem 1.2rem; background: var(--mvrd-page); border-top: 1px solid var(--mvrd-br); flex-shrink: 0; }
+#mv-chapter-nav.show { display: flex; }
+.mv-ch-lbl { font-size: .85rem; font-weight: 800; color: var(--mvrd-text); }
+
+/* تنقل الصور */
+#mv-paged-nav { display: none; align-items: center; justify-content: center; gap: .8rem; padding: .6rem 1.2rem; background: var(--mvrd-page); border-top: 1px solid var(--mvrd-br); flex-shrink: 0; }
+#mv-paged-nav.show { display: flex; }
+.mv-pn-btn { padding: .45rem 1.1rem; background: var(--mvrd-btn); border: 1px solid var(--mvrd-br); border-radius: 8px; color: var(--mvrd-text); font-family: 'Tajawal'; font-size: .85rem; font-weight: 700; cursor: pointer; transition: all .2s; }
+.mv-pn-btn:hover:not(:disabled) { background: var(--red); border-color: var(--red); color: #fff; }
+.mv-pn-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+/* لوحة الإعدادات */
+#mv-settings-panel { display: none; position: absolute; top: 60px; left: 1rem; background: var(--mvrd-page); border: 1px solid var(--mvrd-br); border-radius: 14px; padding: 1.2rem; min-width: 260px; z-index: 100; box-shadow: 0 12px 40px rgba(0,0,0,.5); }
+#mv-settings-panel.open { display: block; }
+.mv-sp-label { font-size: .72rem; font-weight: 800; color: rgba(255,255,255,.45); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: .5rem; display: block; }
+.mv-sp-row { display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.mv-sp-chip { padding: .32rem .8rem; background: var(--mvrd-btn); border: 1px solid var(--mvrd-br); border-radius: 20px; font-size: .8rem; font-weight: 700; cursor: pointer; color: var(--mvrd-text); transition: all .2s; font-family: 'Tajawal'; }
+.mv-sp-chip.active, .mv-sp-chip:hover { background: var(--red); border-color: var(--red); color: #fff; }
+.mv-theme-chip { width: 32px; height: 32px; border-radius: 50%; border: 2.5px solid var(--mvrd-br); cursor: pointer; transition: all .2s; display: inline-flex; align-items: center; justify-content: center; font-size: .9rem; }
+.mv-theme-chip.active { border-color: var(--red); box-shadow: 0 0 8px rgba(232,25,44,.35); }
+.mv-fs-control { display: flex; align-items: center; gap: .5rem; background: var(--mvrd-btn); border: 1px solid var(--mvrd-br); border-radius: 8px; padding: .2rem .5rem; }
+.mv-fs-btn { background: none; border: none; color: var(--mvrd-text); font-size: 1rem; cursor: pointer; padding: .2rem .4rem; border-radius: 4px; }
+.mv-fs-btn:hover { background: var(--mvrd-bth); }
+#mv-fs-val { font-size: .85rem; font-weight: 800; color: var(--red); min-width: 32px; text-align: center; }
+
+/* تحميل */
+#mv-reader-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; padding: 4rem 2rem; color: rgba(255,255,255,.4); font-size: .95rem; }
+.mv-spin-circle { width: 44px; height: 44px; border: 3px solid rgba(255,255,255,.08); border-top-color: var(--red); border-radius: 50%; animation: mv-spin .9s linear infinite; }
+@keyframes mv-spin { to { transform: rotate(360deg); } }
+.mv-load-prog-wrap { width: 200px; height: 4px; background: rgba(255,255,255,.08); border-radius: 2px; overflow: hidden; }
+.mv-load-prog-fill { height: 100%; background: linear-gradient(90deg, var(--red), #f5a623); border-radius: 2px; transition: width .3s; }
+
+/* استئناف */
+#mv-resume-toast { display: none; position: fixed; bottom: 5rem; left: 50%; transform: translateX(-50%); background: var(--mvrd-page); border: 1px solid var(--red); border-radius: 12px; padding: .7rem 1.2rem; font-size: .85rem; font-weight: 700; color: var(--mvrd-text); z-index: 200; box-shadow: 0 4px 20px rgba(0,0,0,.4); cursor: pointer; gap: .6rem; align-items: center; white-space: nowrap; font-family: 'Tajawal'; }
+#mv-resume-toast.show { display: flex; }
+#mv-resume-toast:hover { background: var(--red); color: #fff; }
+
+/* Responsive */
+@media(max-width:600px) { #mv-topbar { padding: .5rem .8rem; gap: .4rem; } .mv-tb-title { max-width: 110px; font-size: .88rem; } #mv-pdf-container { padding: 1rem .5rem; } }
+</style>
+
+<!-- HTML القارئ الجديد -->
+<div id="mv-reader-shell">
+  <!-- شريط الأدوات -->
+  <div id="mv-topbar">
+    <div class="mv-tb-title" id="mv-tb-title">
+      عنوان العمل
+      <span id="mv-tb-type">PDF</span>
+    </div>
+    <div class="mv-tb-group" id="mv-page-controls" style="display:none">
+      <button class="mv-tb-btn" onclick="mvPrevPage()">&#8250; السابقة</button>
+      <div class="mv-page-counter">
+        <input type="number" id="mv-page-inp" value="1" min="1"
+          onchange="mvGoToPage(this.value)"
+          onkeydown="if(event.key==='Enter')mvGoToPage(this.value)">
+        <span class="sep">/</span>
+        <span id="mv-total-pages-lbl">—</span>
+      </div>
+      <button class="mv-tb-btn" onclick="mvNextPage()">&#8249; التالية</button>
+    </div>
+    <div class="mv-tb-group">
+      <div class="mv-tb-group" id="mv-zoom-controls" style="display:none">
+        <button class="mv-tb-btn icon-only" onclick="mvChangeZoom(-10)">−</button>
+        <span class="mv-page-counter" style="min-width:58px;justify-content:center"><span id="mv-zoom-lbl">100%</span></span>
+        <button class="mv-tb-btn icon-only" onclick="mvChangeZoom(+10)">+</button>
+        <button class="mv-tb-btn icon-only" onclick="mvChangeZoom(0)" title="ملاءمة">⊡</button>
+      </div>
+      <button class="mv-tb-btn icon-only" onclick="mvToggleSettings()" title="إعدادات">⚙️</button>
+      <button class="mv-tb-btn icon-only" onclick="mvToggleFullscreen()" title="ملء الشاشة">⛶</button>
+      <button class="mv-tb-btn icon-only" onclick="mvCloseReader()" title="إغلاق">✕</button>
+    </div>
+  </div>
+
+  <!-- شريط التقدم -->
+  <div id="mv-progress-bar-wrap"><div id="mv-progress-bar"></div></div>
+
+  <!-- لوحة الإعدادات -->
+  <div id="mv-settings-panel">
+    <span class="mv-sp-label">الثيم</span>
+    <div class="mv-sp-row">
+      <div class="mv-theme-chip active" data-theme="dark"  onclick="mvSetTheme('dark')"  style="background:#0d0d1a" title="داكن">🌙</div>
+      <div class="mv-theme-chip"        data-theme="sepia" onclick="mvSetTheme('sepia')" style="background:#3a2a14" title="سيبيا">☕</div>
+      <div class="mv-theme-chip"        data-theme="light" onclick="mvSetTheme('light')" style="background:#f5f0eb" title="فاتح">☀️</div>
+      <div class="mv-theme-chip"        data-theme="night" onclick="mvSetTheme('night')" style="background:#060b14" title="ليلي">🌌</div>
+    </div>
+    <div id="mv-font-controls">
+      <span class="mv-sp-label">حجم الخط</span>
+      <div class="mv-sp-row">
+        <div class="mv-fs-control">
+          <button class="mv-fs-btn" onclick="mvChangeFontSize(-1)">−</button>
+          <span id="mv-fs-val">18</span>
+          <button class="mv-fs-btn" onclick="mvChangeFontSize(+1)">+</button>
+        </div>
+      </div>
+      <span class="mv-sp-label">تباعد الأسطر</span>
+      <div class="mv-sp-row">
+        <span class="mv-sp-chip"        onclick="mvSetLineH(this,'1.8')">مضغوط</span>
+        <span class="mv-sp-chip active" onclick="mvSetLineH(this,'2.1')">متوسط</span>
+        <span class="mv-sp-chip"        onclick="mvSetLineH(this,'2.6')">واسع</span>
+      </div>
+    </div>
+    <div id="mv-img-mode-controls" style="display:none">
+      <span class="mv-sp-label">وضع العرض</span>
+      <div class="mv-sp-row">
+        <span class="mv-sp-chip active" onclick="mvSetImgMode(this,'scroll')">📜 تمرير</span>
+        <span class="mv-sp-chip"        onclick="mvSetImgMode(this,'paged')">📄 صفحة</span>
+      </div>
+    </div>
+    <div id="mv-pdf-fit-controls" style="display:none">
+      <span class="mv-sp-label">ملاءمة الصفحة</span>
+      <div class="mv-sp-row">
+        <span class="mv-sp-chip active" onclick="mvSetFitMode(this,'width')">عرض الشاشة</span>
+        <span class="mv-sp-chip"        onclick="mvSetFitMode(this,'page')">الصفحة كاملة</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- منطقة القراءة -->
+  <div id="mv-reader-body" onscroll="mvOnBodyScroll()">
+    <div id="mv-reader-loading">
+      <div class="mv-spin-circle"></div>
+      <span id="mv-loading-text">جاري تحميل الملف...</span>
+      <div class="mv-load-prog-wrap"><div class="mv-load-prog-fill" id="mv-load-prog" style="width:0%"></div></div>
+    </div>
+    <div id="mv-pdf-container" style="display:none"></div>
+    <div id="mv-novel-container"><div id="mv-novel-text"></div></div>
+    <div id="mv-images-container"></div>
+  </div>
+
+  <!-- تنقل الصور -->
+  <div id="mv-paged-nav">
+    <button class="mv-pn-btn" id="mv-pn-prev" onclick="mvImgPrev()">&#8250; السابقة</button>
+    <span id="mv-paged-lbl" style="font-size:.85rem;font-weight:800;color:rgba(255,255,255,.5);min-width:60px;text-align:center">1 / 1</span>
+    <button class="mv-pn-btn" id="mv-pn-next" onclick="mvImgNext()">&#8249; التالية</button>
+  </div>
+
+  <!-- تنقل الفصول -->
+  <div id="mv-chapter-nav">
+    <button class="mv-tb-btn" id="mv-ch-prev-btn" onclick="mvPrevChapter()">&#8250; الفصل السابق</button>
+    <span class="mv-ch-lbl" id="mv-ch-lbl">الفصل 1</span>
+    <button class="mv-tb-btn" id="mv-ch-next-btn" onclick="mvNextChapter()">&#8249; الفصل التالي</button>
+  </div>
+</div>
+
+<!-- زر الاستئناف -->
+<div id="mv-resume-toast" onclick="mvDoResume()">📌 استئناف من حيث توقفت</div>
+
 <!-- PDF VIEWER PAGE -->
 <div id="pdf-viewer-page" style="display:none;position:fixed;inset:0;background:#141414;z-index:9998;flex-direction:column;">
   <!-- شريط العنوان -->
@@ -6215,25 +6444,6 @@ if("serviceWorker" in navigator){
         <span id="adm-notifs-count">—</span>
         <span>الإشعارات</span>
       </div>
-    </div>
-    <!-- ── أداة إضافة الـ Watermark على الأعمال القديمة ── -->
-    <div style="background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.25);border-radius:14px;padding:1rem 1.2rem;margin-bottom:1.2rem">
-      <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:.6rem">
-        <span style="font-size:1.3rem">🖼️</span>
-        <div>
-          <div style="font-weight:800;font-size:.9rem;color:var(--gold)">إضافة Watermark على الأعمال القديمة</div>
-          <div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:.15rem">تُجلب كل الأغلفة وتُعاد رفعها مع شعار MangaVerse تلقائياً</div>
-        </div>
-      </div>
-      <div id="wm-batch-progress" style="display:none;margin-bottom:.7rem">
-        <div style="background:rgba(255,255,255,.06);border-radius:20px;height:8px;overflow:hidden;margin-bottom:.4rem">
-          <div id="wm-batch-bar" style="height:100%;background:linear-gradient(90deg,var(--gold),#f59e0b);border-radius:20px;width:0%;transition:width .4s"></div>
-        </div>
-        <div id="wm-batch-lbl" style="font-size:.78rem;color:rgba(255,255,255,.5);text-align:center">جاري المعالجة...</div>
-      </div>
-      <button id="btn-wm-batch" onclick="runWatermarkBatch()" style="background:linear-gradient(135deg,#f59e0b,#d97706);border:none;color:#000;font-family:'Tajawal';font-size:.88rem;font-weight:800;padding:.6rem 1.4rem;border-radius:10px;cursor:pointer;width:100%">
-        ✦ تطبيق Watermark على كل الأعمال
-      </button>
     </div>
     <h4 style="margin-bottom:.8rem;color:var(--mu);font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;">📚 جميع الأعمال</h4>
     <div id="admin-works-list" style="display:flex;flex-direction:column;gap:.6rem;max-height:420px;overflow-y:auto;"></div>
@@ -8399,91 +8609,6 @@ window.selectCreationType = (type) => {
   }
 };
 
-// ════════════════════════════════════════
-// ── Batch Watermark — معالجة كل الأعمال القديمة ──
-// ════════════════════════════════════════
-window.runWatermarkBatch = async () => {
-  if(!isAdmin()) return toast("⛔ غير مصرح","e");
-  const btn  = document.getElementById("btn-wm-batch");
-  const bar  = document.getElementById("wm-batch-bar");
-  const lbl  = document.getElementById("wm-batch-lbl");
-  const prog = document.getElementById("wm-batch-progress");
-  if(btn)  { btn.disabled=true; btn.textContent="⏳ جاري المعالجة..."; }
-  if(prog)   prog.style.display="block";
-
-  try {
-    if(!db) throw new Error("Firebase غير متاح");
-
-    // جلب كل الأعمال التي لها coverUrl
-    const snap = await getDocs(collection(db,"works"));
-    const works = snap.docs
-      .map(d=>({id:d.id,...d.data()}))
-      .filter(w => w.coverUrl && !w.coverUrl.includes("placehold"));
-
-    if(!works.length){
-      toast("📭 لا توجد أعمال لمعالجتها","w");
-      if(btn){ btn.disabled=false; btn.textContent="✦ تطبيق Watermark على كل الأعمال"; }
-      return;
-    }
-
-    let done=0, failed=0;
-    const total = works.length;
-
-    for(const w of works){
-      try {
-        if(lbl) lbl.textContent = `${done+1} / ${total} — جاري: ${w.title||"عمل"}`;
-        if(bar) bar.style.width = Math.round(((done)/total)*100)+"%";
-
-        // تحميل الصورة كـ blob
-        let imgBlob;
-        try {
-          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(w.coverUrl)}`;
-          const resp = await fetch(proxyUrl);
-          if(!resp.ok) throw new Error("fetch failed");
-          imgBlob = await resp.blob();
-        } catch(e) {
-          // محاولة مباشرة
-          const resp2 = await fetch(w.coverUrl, {mode:"cors"});
-          imgBlob = await resp2.blob();
-        }
-
-        // تحويل الـ blob لـ File
-        const ext  = imgBlob.type.includes("png") ? "png" : "jpg";
-        const file = new File([imgBlob], `cover.${ext}`, {type: imgBlob.type||"image/jpeg"});
-
-        // إضافة الـ watermark
-        const wmFile = await window.addWatermarkToImage(file);
-
-        // رفع على Cloudinary
-        const fd = new FormData();
-        fd.append("file", wmFile);
-        fd.append("upload_preset", "yex2npxo");
-        const r = await fetch(`https://api.cloudinary.com/v1_1/ddogh7kzj/image/upload`,{method:"POST",body:fd});
-        if(!r.ok) throw new Error("cloudinary upload failed");
-        const data = await r.json();
-        const newUrl = data.secure_url;
-
-        // تحديث Firestore
-        await updateDoc(doc(db,"works",w.id), { coverUrl: newUrl });
-        done++;
-      } catch(err) {
-        console.warn("فشل watermark لـ:", w.title, err);
-        failed++;
-        done++;
-      }
-    }
-
-    if(bar) bar.style.width="100%";
-    if(lbl) lbl.textContent = `✅ انتهى — ${done-failed} نجح / ${failed} فشل من ${total}`;
-    toast(`✅ تم تطبيق Watermark على ${done-failed} عمل!`);
-    loadWorks(); loadHeroSlider();
-  } catch(e) {
-    toast("❌ خطأ: "+e.message,"e");
-    console.error(e);
-  }
-  if(btn){ btn.disabled=false; btn.textContent="✦ تطبيق Watermark مجدداً"; }
-};
-
 window.resetCreationType = () => {
   const optHuman = document.getElementById("opt-human");
   const optAi    = document.getElementById("opt-ai");
@@ -8632,3 +8757,462 @@ window.openMahbaraPost = async (id) => {
 </script>
 
 
+
+<!-- ═══════════════════════════════════════════════════
+     JS القارئ الجديد (PDF.js + صور + نص)
+════════════════════════════════════════════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+function G(id){ return document.getElementById(id); }
+
+const MV = {
+  mode: 'pdf', pdfDoc: null, pdfCurrentPage: 1, pdfTotalPages: 0,
+  pdfZoom: 1.4, pdfFitMode: 'width', imgPages: [], imgCurrentPage: 0,
+  imgMode: 'scroll', chapters: [], chapterIdx: 0, workId: null, workTitle: '',
+  fontSize: 18, lineHeight: 2.1, theme: 'dark', savedPct: 0, onClose: null, onProgress: null,
+};
+
+window.MangaReaderOpen = function(opts){
+  opts = opts || {};
+  MV.workId=opts.workId||null; MV.workTitle=opts.title||'عمل إبداعي';
+  MV.savedPct=opts.savedPct||0; MV.chapters=opts.chapters||[];
+  MV.chapterIdx=opts.chapterIdx||0; MV.onClose=opts.onClose||null; MV.onProgress=opts.onProgress||null;
+  _mvLoadSettings();
+  const titleEl=G('mv-tb-title');
+  if(titleEl){ titleEl.childNodes[0].nodeValue=MV.workTitle+'\n'; }
+  const shell=G('mv-reader-shell');
+  if(shell){ shell.classList.add('open'); document.body.style.overflow='hidden'; }
+  if(MV.chapters.length>0) _mvLoadChapter(MV.chapterIdx,opts);
+  else _mvStartMode(opts.mode||'pdf',opts);
+};
+
+function _mvStartMode(mode,opts){
+  MV.mode=mode;
+  var ids=['mv-pdf-container','mv-novel-container','mv-images-container'];
+  ids.forEach(function(id){ var el=G(id); if(el) el.style.display='none'; });
+  var nav=G('mv-paged-nav'); if(nav) nav.classList.remove('show');
+  ['mv-page-controls','mv-zoom-controls','mv-font-controls','mv-img-mode-controls','mv-pdf-fit-controls'].forEach(function(id){
+    var el=G(id); if(el) el.style.display='none';
+  });
+  var loading=G('mv-reader-loading'); if(loading) loading.style.display='flex';
+  var prog=G('mv-load-prog'); if(prog) prog.style.width='0%';
+
+  if(mode==='pdf'){
+    G('mv-tb-type').textContent='رواية • PDF';
+    G('mv-zoom-controls').style.display='flex';
+    G('mv-page-controls').style.display='flex';
+    G('mv-pdf-fit-controls').style.display='block';
+    _mvLoadPDF(opts.pdfUrl);
+  } else if(mode==='novel'){
+    G('mv-tb-type').textContent='رواية • نص';
+    G('mv-font-controls').style.display='block';
+    _mvLoadNovel(opts.novelText||'');
+  } else if(mode==='images'){
+    G('mv-tb-type').textContent='مانجا / ويبتون';
+    G('mv-img-mode-controls').style.display='block';
+    G('mv-page-controls').style.display='flex';
+    _mvLoadImages(opts.pages||[]);
+  }
+}
+
+async function _mvLoadPDF(url){
+  if(!url){ _mvShowError('لم يتم تحديد رابط الملف'); return; }
+  if(window.pdfjsLib){
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+  var ltxt=G('mv-loading-text'); if(ltxt) ltxt.textContent='جاري تحميل الملف...';
+  var lp=G('mv-load-prog'); if(lp) lp.style.width='5%';
+  try{
+    var loadingTask=pdfjsLib.getDocument({
+      url:url,
+      cMapUrl:'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+      cMapPacked:true,
+      standardFontDataUrl:'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/',
+    });
+    loadingTask.onProgress=function(data){
+      if(data.total>0){
+        var pct=Math.round((data.loaded/data.total)*80)+5;
+        if(lp) lp.style.width=pct+'%';
+        if(ltxt) ltxt.textContent='جاري التحميل... '+Math.round(data.loaded/1024)+'KB';
+      }
+    };
+    MV.pdfDoc=await loadingTask.promise;
+    MV.pdfTotalPages=MV.pdfDoc.numPages;
+    if(lp) lp.style.width='95%';
+    var tpl=G('mv-total-pages-lbl'); if(tpl) tpl.textContent=MV.pdfTotalPages;
+    var pi=G('mv-page-inp'); if(pi) pi.max=MV.pdfTotalPages;
+    G('mv-reader-loading').style.display='none';
+    G('mv-pdf-container').style.display='flex';
+    await _mvCalcPDFScale();
+    MV.pdfCurrentPage=1;
+    await _mvRenderAllPDFPages();
+    _mvCheckResume();
+  }catch(e){
+    console.error('PDF error:',e);
+    _mvShowError('تعذّر تحميل الملف — تأكد من صحة الرابط أو إعدادات Cloudinary');
+  }
+}
+
+async function _mvCalcPDFScale(){
+  var page=await MV.pdfDoc.getPage(1);
+  var vp=page.getViewport({scale:1});
+  var body=G('mv-reader-body');
+  var w=(body?body.clientWidth:window.innerWidth)-48;
+  MV.pdfZoom=Math.max(Math.min(w/vp.width,2.5),0.5);
+  var zl=G('mv-zoom-lbl'); if(zl) zl.textContent=Math.round(MV.pdfZoom*100)+'%';
+}
+
+async function _mvRenderAllPDFPages(){
+  var container=G('mv-pdf-container');
+  container.innerHTML='';
+  for(var i=1;i<=MV.pdfTotalPages;i++){
+    var wrap=document.createElement('div');
+    wrap.className='mv-pdf-page-wrap'; wrap.id='mv-pdf-page-'+i; wrap.dataset.page=i;
+    var canvas=document.createElement('canvas');
+    var badge=document.createElement('div'); badge.className='mv-pdf-page-num'; badge.textContent=i+' / '+MV.pdfTotalPages;
+    wrap.appendChild(canvas); wrap.appendChild(badge); container.appendChild(wrap);
+    if(i<=3){ await _mvRenderPDFPage(i,canvas); }
+    else{ canvas.width=100; canvas.height=141; wrap.dataset.rendered='false'; _mvObservePage(wrap,canvas,i); }
+  }
+  _mvUpdatePageUI(1);
+}
+
+async function _mvRenderPDFPage(pageNum,canvas){
+  try{
+    var page=await MV.pdfDoc.getPage(pageNum);
+    var viewport=page.getViewport({scale:MV.pdfZoom});
+    var ctx=canvas.getContext('2d');
+    var dpr=window.devicePixelRatio||1;
+    canvas.width=Math.floor(viewport.width*dpr); canvas.height=Math.floor(viewport.height*dpr);
+    canvas.style.width=Math.floor(viewport.width)+'px'; canvas.style.height=Math.floor(viewport.height)+'px';
+    ctx.scale(dpr,dpr);
+    await page.render({canvasContext:ctx,viewport:viewport,intent:'display'}).promise;
+    if(canvas.parentElement) canvas.parentElement.dataset.rendered='true';
+  }catch(e){ if(e.name!=='RenderingCancelledException') console.warn('صفحة '+pageNum+' فشلت:',e.message); }
+}
+
+var _mvPageObserver=new IntersectionObserver(function(entries){
+  entries.forEach(function(entry){
+    if(entry.isIntersecting){
+      var wrap=entry.target;
+      if(wrap.dataset.rendered==='false'){
+        var canvas=wrap.querySelector('canvas'); var pageNum=parseInt(wrap.dataset.page);
+        wrap.dataset.rendered='loading';
+        _mvRenderPDFPage(pageNum,canvas).then(function(){ wrap.dataset.rendered='true'; });
+        _mvPageObserver.unobserve(wrap);
+      }
+    }
+  });
+},{rootMargin:'200px 0px'});
+
+function _mvObservePage(wrap,canvas,pageNum){
+  MV.pdfDoc.getPage(pageNum).then(function(page){
+    var vp=page.getViewport({scale:MV.pdfZoom});
+    canvas.style.width=Math.floor(vp.width)+'px'; canvas.style.height=Math.floor(vp.height)+'px';
+    canvas.width=2; canvas.height=2;
+  });
+  _mvPageObserver.observe(wrap);
+}
+
+window.mvChangeZoom=async function(delta){
+  if(delta===0) await _mvCalcPDFScale();
+  else MV.pdfZoom=Math.max(0.4,Math.min(MV.pdfZoom+delta*0.1,3));
+  var zl=G('mv-zoom-lbl'); if(zl) zl.textContent=Math.round(MV.pdfZoom*100)+'%';
+  G('mv-pdf-container').querySelectorAll('.mv-pdf-page-wrap').forEach(async function(wrap){
+    if(wrap.dataset.rendered!=='false') await _mvRenderPDFPage(parseInt(wrap.dataset.page),wrap.querySelector('canvas'));
+  });
+};
+
+window.mvGoToPage=function(num){
+  var max=MV.mode==='pdf'?MV.pdfTotalPages:MV.imgPages.length;
+  var n=Math.max(1,Math.min(parseInt(num)||1,max));
+  if(MV.mode==='pdf'){ var el=G('mv-pdf-page-'+n); if(el){ el.scrollIntoView({behavior:'smooth',block:'start'}); _mvUpdatePageUI(n); } }
+  else if(MV.mode==='images') _mvGoToImgPage(n-1);
+};
+window.mvPrevPage=function(){ if(MV.mode==='pdf') mvGoToPage(MV.pdfCurrentPage-1); else if(MV.imgMode==='paged') mvImgPrev(); };
+window.mvNextPage=function(){ if(MV.mode==='pdf') mvGoToPage(MV.pdfCurrentPage+1); else if(MV.imgMode==='paged') mvImgNext(); };
+
+function _mvUpdatePageUI(n){
+  MV.pdfCurrentPage=n;
+  var pi=G('mv-page-inp'); if(pi) pi.value=n;
+  _mvUpdateProgress(n,MV.pdfTotalPages);
+}
+
+function _mvLoadNovel(text){
+  G('mv-reader-loading').style.display='none';
+  G('mv-novel-container').style.display='block';
+  var el=G('mv-novel-text');
+  el.setAttribute('dir','rtl'); el.setAttribute('lang','ar');
+  el.style.direction='rtl'; el.style.textAlign='right';
+  el.textContent=text||'لا يوجد محتوى نصي.';
+  _mvCheckResume();
+}
+
+function _mvLoadImages(pages){
+  MV.imgPages=pages; MV.imgCurrentPage=0;
+  G('mv-reader-loading').style.display='none';
+  G('mv-images-container').style.display='flex';
+  var tpl=G('mv-total-pages-lbl'); if(tpl) tpl.textContent=pages.length;
+  var container=G('mv-images-container'); container.innerHTML='';
+  pages.forEach(function(url,i){
+    var wrap=document.createElement('div'); wrap.className='mv-manga-img-wrap'; wrap.id='mv-img-page-'+i;
+    var img=document.createElement('img');
+    img.loading=i<3?'eager':'lazy'; img.src=url; img.alt='صفحة '+(i+1);
+    img.draggable=false; img.oncontextmenu=function(e){e.preventDefault();};
+    wrap.appendChild(img); container.appendChild(wrap);
+  });
+  _mvGoToImgPage(0); _mvCheckResume();
+}
+
+function _mvGoToImgPage(idx){
+  var pages=G('mv-images-container').querySelectorAll('.mv-manga-img-wrap');
+  idx=Math.max(0,Math.min(idx,MV.imgPages.length-1));
+  MV.imgCurrentPage=idx;
+  if(MV.imgMode==='paged'){
+    pages.forEach(function(p,i){ p.classList.toggle('mv-active-page',i===idx); });
+    var pl=G('mv-paged-lbl'); if(pl) pl.textContent=(idx+1)+' / '+MV.imgPages.length;
+    var pp=G('mv-pn-prev'); if(pp) pp.disabled=idx===0;
+    var pn=G('mv-pn-next'); if(pn) pn.disabled=idx===MV.imgPages.length-1;
+  }
+  var pi=G('mv-page-inp'); if(pi) pi.value=idx+1;
+  _mvUpdateProgress(idx+1,MV.imgPages.length);
+}
+
+window.mvImgPrev=function(){ _mvGoToImgPage(MV.imgCurrentPage-1); };
+window.mvImgNext=function(){ _mvGoToImgPage(MV.imgCurrentPage+1); };
+
+window.mvSetImgMode=function(chip,mode){
+  MV.imgMode=mode;
+  document.querySelectorAll('#mv-img-mode-controls .mv-sp-chip').forEach(function(c){ c.classList.remove('active'); });
+  chip.classList.add('active');
+  var container=G('mv-images-container');
+  if(mode==='paged'){
+    container.classList.add('paged-mode'); G('mv-paged-nav').classList.add('show');
+    G('mv-page-controls').style.display='none'; _mvGoToImgPage(MV.imgCurrentPage);
+  } else {
+    container.classList.remove('paged-mode'); G('mv-paged-nav').classList.remove('show');
+    G('mv-page-controls').style.display='flex';
+    container.querySelectorAll('.mv-manga-img-wrap').forEach(function(p){ p.classList.remove('mv-active-page'); });
+  }
+};
+
+function _mvLoadChapter(idx,baseOpts){
+  var ch=MV.chapters[idx]; if(!ch) return;
+  MV.chapterIdx=idx;
+  var lbl=G('mv-ch-lbl'); if(lbl) lbl.textContent=ch.title||('الفصل '+(idx+1));
+  var prev=G('mv-ch-prev-btn'); if(prev) prev.disabled=idx===0;
+  var next=G('mv-ch-next-btn'); if(next) next.disabled=idx===MV.chapters.length-1;
+  G('mv-chapter-nav').classList.toggle('show',MV.chapters.length>1);
+  if(ch.pages&&ch.pages.length) _mvStartMode('images',{pages:ch.pages});
+  else if(ch.fileUrl) _mvStartMode('pdf',{pdfUrl:ch.fileUrl});
+  else if(ch.novelContent) _mvStartMode('novel',{novelText:ch.novelContent});
+}
+
+window.mvPrevChapter=function(){ if(MV.chapterIdx>0) _mvLoadChapter(MV.chapterIdx-1,{}); };
+window.mvNextChapter=function(){ if(MV.chapterIdx<MV.chapters.length-1) _mvLoadChapter(MV.chapterIdx+1,{}); };
+
+function _mvUpdateProgress(current,total){
+  var pct=total>1?Math.round(((current-1)/(total-1))*100):100;
+  var pb=G('mv-progress-bar'); if(pb) pb.style.width=pct+'%';
+  if(MV.onProgress) MV.onProgress(pct);
+}
+
+window.mvOnBodyScroll=function(){
+  var body=G('mv-reader-body');
+  var total=body.scrollHeight-body.clientHeight;
+  if(total<=0) return;
+  var pct=Math.round((body.scrollTop/total)*100);
+  var pb=G('mv-progress-bar'); if(pb) pb.style.width=pct+'%';
+  if(MV.onProgress) MV.onProgress(pct);
+  if(MV.mode==='pdf'&&MV.pdfDoc){
+    G('mv-pdf-container').querySelectorAll('.mv-pdf-page-wrap').forEach(function(wrap){
+      var rect=wrap.getBoundingClientRect();
+      if(rect.top>=0&&rect.top<window.innerHeight*0.5){
+        var n=parseInt(wrap.dataset.page);
+        if(n!==MV.pdfCurrentPage) _mvUpdatePageUI(n);
+      }
+    });
+  }
+};
+
+function _mvCheckResume(){ if(MV.savedPct>2){ var t=G('mv-resume-toast'); if(t) t.classList.add('show'); } }
+window.mvDoResume=function(){
+  var t=G('mv-resume-toast'); if(t) t.classList.remove('show');
+  var body=G('mv-reader-body');
+  var total=body.scrollHeight-body.clientHeight;
+  body.scrollTo({top:(MV.savedPct/100)*total,behavior:'smooth'});
+};
+
+window.mvSetTheme=function(theme){
+  MV.theme=theme;
+  var shell=G('mv-reader-shell');
+  shell.removeAttribute('data-theme');
+  if(theme!=='dark') shell.setAttribute('data-theme',theme);
+  document.querySelectorAll('.mv-theme-chip').forEach(function(c){ c.classList.toggle('active',c.dataset.theme===theme); });
+  _mvSaveSettings();
+};
+
+window.mvChangeFontSize=function(delta){
+  MV.fontSize=Math.max(14,Math.min(MV.fontSize+delta,28));
+  G('mv-reader-shell').style.setProperty('--mv-font-size',MV.fontSize+'px');
+  var fv=G('mv-fs-val'); if(fv) fv.textContent=MV.fontSize;
+  _mvSaveSettings();
+};
+
+window.mvSetLineH=function(chip,val){
+  MV.lineHeight=parseFloat(val);
+  G('mv-reader-shell').style.setProperty('--mv-line-height',val);
+  document.querySelectorAll('#mv-settings-panel .mv-sp-chip').forEach(function(c){
+    if(c.getAttribute('onclick')&&c.getAttribute('onclick').indexOf('mvSetLineH')!==-1) c.classList.remove('active');
+  });
+  chip.classList.add('active');
+  _mvSaveSettings();
+};
+
+window.mvSetFitMode=function(chip,mode){
+  MV.pdfFitMode=mode;
+  document.querySelectorAll('#mv-pdf-fit-controls .mv-sp-chip').forEach(function(c){ c.classList.remove('active'); });
+  chip.classList.add('active');
+  if(mode==='width') mvChangeZoom(0);
+  else if(mode==='page'&&MV.pdfDoc){
+    MV.pdfDoc.getPage(1).then(function(page){
+      var vp=page.getViewport({scale:1});
+      var h=G('mv-reader-body').clientHeight-80;
+      MV.pdfZoom=h/vp.height;
+      var zl=G('mv-zoom-lbl'); if(zl) zl.textContent=Math.round(MV.pdfZoom*100)+'%';
+      G('mv-pdf-container').querySelectorAll('.mv-pdf-page-wrap').forEach(async function(wrap){
+        await _mvRenderPDFPage(parseInt(wrap.dataset.page),wrap.querySelector('canvas'));
+      });
+    });
+  }
+};
+
+function _mvSaveSettings(){ try{ localStorage.setItem('mv_reader2_settings',JSON.stringify({theme:MV.theme,fontSize:MV.fontSize,lineHeight:MV.lineHeight})); }catch(e){} }
+function _mvLoadSettings(){
+  try{
+    var s=JSON.parse(localStorage.getItem('mv_reader2_settings')||'{}');
+    if(s.theme) mvSetTheme(s.theme);
+    if(s.fontSize){ MV.fontSize=s.fontSize; G('mv-reader-shell').style.setProperty('--mv-font-size',s.fontSize+'px'); var fv=G('mv-fs-val'); if(fv) fv.textContent=s.fontSize; }
+    if(s.lineHeight){ MV.lineHeight=s.lineHeight; G('mv-reader-shell').style.setProperty('--mv-line-height',s.lineHeight); }
+  }catch(e){}
+}
+
+window.mvToggleFullscreen=function(){ if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){}); else document.exitFullscreen().catch(function(){}); };
+window.mvToggleSettings=function(){ var p=G('mv-settings-panel'); if(p) p.classList.toggle('open'); };
+document.addEventListener('click',function(e){
+  var panel=G('mv-settings-panel');
+  if(panel&&!panel.contains(e.target)&&!e.target.closest('[onclick*="mvToggleSettings"]')) panel.classList.remove('open');
+});
+
+window.mvCloseReader=function(){
+  var shell=G('mv-reader-shell'); if(shell) shell.classList.remove('open');
+  var toast=G('mv-resume-toast'); if(toast) toast.classList.remove('show');
+  document.body.style.overflow='';
+  MV.pdfDoc=null; MV.pdfTotalPages=0; MV.pdfCurrentPage=1;
+  if(MV.onClose) MV.onClose();
+};
+
+function _mvShowError(msg){
+  var loading=G('mv-reader-loading');
+  if(loading) loading.innerHTML='<div style="text-align:center;color:rgba(232,25,44,.8)"><div style="font-size:2.5rem;margin-bottom:.8rem">⚠️</div><div style="font-size:.95rem;font-weight:700">'+msg+'</div></div>';
+}
+
+(function(){
+  var sx=0,sy=0;
+  var body=G('mv-reader-body');
+  if(body){
+    body.addEventListener('touchstart',function(e){ sx=e.touches[0].clientX; sy=e.touches[0].clientY; },{passive:true});
+    body.addEventListener('touchend',function(e){
+      if(MV.mode!=='images'||MV.imgMode!=='paged') return;
+      var dx=e.changedTouches[0].clientX-sx; var dy=e.changedTouches[0].clientY-sy;
+      if(Math.abs(dx)<Math.abs(dy)*0.8||Math.abs(dx)<40) return;
+      if(dx<0) mvImgNext(); else mvImgPrev();
+    },{passive:true});
+  }
+  document.addEventListener('keydown',function(e){
+    var shell=G('mv-reader-shell');
+    if(!shell||!shell.classList.contains('open')) return;
+    if(e.key==='ArrowRight'||e.key==='ArrowDown') mvNextPage();
+    if(e.key==='ArrowLeft'||e.key==='ArrowUp') mvPrevPage();
+    if(e.key==='Escape') mvCloseReader();
+  });
+})();
+
+// ════════════════════════════════════
+// إعادة توجيه الدوال القديمة للجديد
+// ════════════════════════════════════
+
+window.openPdfViewer = async function(src,title,w){
+  if(!src){ if(typeof toast==='function') toast('❌ لا يوجد ملف','e'); return; }
+  var savedPct=0;
+  if(window.CU&&w&&w.id){
+    try{
+      var db=window._fb_db,_doc=window._fb_doc,_getDoc=window._fb_getDoc;
+      if(db&&_doc&&_getDoc){
+        var snap=await _getDoc(_doc(db,'readProgress',window.CU.uid+'_'+w.id));
+        if(snap.exists()) savedPct=snap.data().scrollPct||0;
+      }
+    }catch(e){}
+  } else if(w&&w.id){ try{ savedPct=parseFloat(localStorage.getItem('rp_'+w.id)||'0'); }catch(e){} }
+  window.MangaReaderOpen({
+    mode:'pdf', pdfUrl:src, title:title||(w&&w.title)||'PDF',
+    workId:w&&w.id, savedPct:savedPct,
+    onClose:function(){},
+    onProgress:function(pct){ _mvSaveReadProgress(w,pct); }
+  });
+};
+
+window.openReader = async function(w){
+  if(!w||!w.pages||!w.pages.length){ if(typeof toast==='function') toast('❌ لا توجد صفحات','e'); return; }
+  var savedPct=0;
+  if(window.CU&&w.id){
+    try{
+      var db=window._fb_db,_doc=window._fb_doc,_getDoc=window._fb_getDoc;
+      if(db&&_doc&&_getDoc){
+        var snap=await _getDoc(_doc(db,'readProgress',window.CU.uid+'_'+w.id));
+        if(snap.exists()) savedPct=snap.data().scrollPct||0;
+      }
+    }catch(e){}
+  } else if(w.id){ try{ savedPct=parseFloat(localStorage.getItem('rp_'+w.id)||'0'); }catch(e){} }
+  window.MangaReaderOpen({
+    mode:'images', pages:w.pages, title:w.title||'مانجا',
+    workId:w.id, savedPct:savedPct,
+    onClose:function(){},
+    onProgress:function(pct){ _mvSaveReadProgress(w,pct); }
+  });
+};
+
+function _mvSaveReadProgress(w,pct){
+  if(!w||!w.id) return;
+  if(window.CU){
+    try{
+      var db=window._fb_db,_doc=window._fb_doc,_setDoc=window._fb_setDoc,_ts=window._fb_serverTimestamp;
+      if(db&&_doc&&_setDoc&&_ts){
+        _setDoc(_doc(db,'readProgress',window.CU.uid+'_'+w.id),{
+          uid:window.CU.uid,workId:w.id,workTitle:w.title||'',
+          coverUrl:w.coverUrl||'',workType:w.type||'',
+          scrollPct:pct,updatedAt:_ts()
+        },{merge:true}).catch(function(){});
+      }
+    }catch(e){}
+  } else { try{ localStorage.setItem('rp_'+w.id,pct); }catch(e){} }
+}
+
+})();
+</script>
+
+<script type="module">
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+try{
+  var _app=getApp();
+  window._fb_db=getFirestore(_app);
+  window._fb_doc=doc;
+  window._fb_getDoc=getDoc;
+  window._fb_setDoc=setDoc;
+  window._fb_serverTimestamp=serverTimestamp;
+}catch(e){}
+</script>
