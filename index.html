@@ -6216,6 +6216,25 @@ if("serviceWorker" in navigator){
         <span>الإشعارات</span>
       </div>
     </div>
+    <!-- ── أداة إضافة الـ Watermark على الأعمال القديمة ── -->
+    <div style="background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.25);border-radius:14px;padding:1rem 1.2rem;margin-bottom:1.2rem">
+      <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:.6rem">
+        <span style="font-size:1.3rem">🖼️</span>
+        <div>
+          <div style="font-weight:800;font-size:.9rem;color:var(--gold)">إضافة Watermark على الأعمال القديمة</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:.15rem">تُجلب كل الأغلفة وتُعاد رفعها مع شعار MangaVerse تلقائياً</div>
+        </div>
+      </div>
+      <div id="wm-batch-progress" style="display:none;margin-bottom:.7rem">
+        <div style="background:rgba(255,255,255,.06);border-radius:20px;height:8px;overflow:hidden;margin-bottom:.4rem">
+          <div id="wm-batch-bar" style="height:100%;background:linear-gradient(90deg,var(--gold),#f59e0b);border-radius:20px;width:0%;transition:width .4s"></div>
+        </div>
+        <div id="wm-batch-lbl" style="font-size:.78rem;color:rgba(255,255,255,.5);text-align:center">جاري المعالجة...</div>
+      </div>
+      <button id="btn-wm-batch" onclick="runWatermarkBatch()" style="background:linear-gradient(135deg,#f59e0b,#d97706);border:none;color:#000;font-family:'Tajawal';font-size:.88rem;font-weight:800;padding:.6rem 1.4rem;border-radius:10px;cursor:pointer;width:100%">
+        ✦ تطبيق Watermark على كل الأعمال
+      </button>
+    </div>
     <h4 style="margin-bottom:.8rem;color:var(--mu);font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;">📚 جميع الأعمال</h4>
     <div id="admin-works-list" style="display:flex;flex-direction:column;gap:.6rem;max-height:420px;overflow-y:auto;"></div>
   </div>
@@ -8378,6 +8397,91 @@ window.selectCreationType = (type) => {
     if(checkA) checkA.style.display = "flex";
     if(input)  input.value = "ai";
   }
+};
+
+// ════════════════════════════════════════
+// ── Batch Watermark — معالجة كل الأعمال القديمة ──
+// ════════════════════════════════════════
+window.runWatermarkBatch = async () => {
+  if(!isAdmin()) return toast("⛔ غير مصرح","e");
+  const btn  = document.getElementById("btn-wm-batch");
+  const bar  = document.getElementById("wm-batch-bar");
+  const lbl  = document.getElementById("wm-batch-lbl");
+  const prog = document.getElementById("wm-batch-progress");
+  if(btn)  { btn.disabled=true; btn.textContent="⏳ جاري المعالجة..."; }
+  if(prog)   prog.style.display="block";
+
+  try {
+    if(!db) throw new Error("Firebase غير متاح");
+
+    // جلب كل الأعمال التي لها coverUrl
+    const snap = await getDocs(collection(db,"works"));
+    const works = snap.docs
+      .map(d=>({id:d.id,...d.data()}))
+      .filter(w => w.coverUrl && !w.coverUrl.includes("placehold"));
+
+    if(!works.length){
+      toast("📭 لا توجد أعمال لمعالجتها","w");
+      if(btn){ btn.disabled=false; btn.textContent="✦ تطبيق Watermark على كل الأعمال"; }
+      return;
+    }
+
+    let done=0, failed=0;
+    const total = works.length;
+
+    for(const w of works){
+      try {
+        if(lbl) lbl.textContent = `${done+1} / ${total} — جاري: ${w.title||"عمل"}`;
+        if(bar) bar.style.width = Math.round(((done)/total)*100)+"%";
+
+        // تحميل الصورة كـ blob
+        let imgBlob;
+        try {
+          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(w.coverUrl)}`;
+          const resp = await fetch(proxyUrl);
+          if(!resp.ok) throw new Error("fetch failed");
+          imgBlob = await resp.blob();
+        } catch(e) {
+          // محاولة مباشرة
+          const resp2 = await fetch(w.coverUrl, {mode:"cors"});
+          imgBlob = await resp2.blob();
+        }
+
+        // تحويل الـ blob لـ File
+        const ext  = imgBlob.type.includes("png") ? "png" : "jpg";
+        const file = new File([imgBlob], `cover.${ext}`, {type: imgBlob.type||"image/jpeg"});
+
+        // إضافة الـ watermark
+        const wmFile = await window.addWatermarkToImage(file);
+
+        // رفع على Cloudinary
+        const fd = new FormData();
+        fd.append("file", wmFile);
+        fd.append("upload_preset", "yex2npxo");
+        const r = await fetch(`https://api.cloudinary.com/v1_1/ddogh7kzj/image/upload`,{method:"POST",body:fd});
+        if(!r.ok) throw new Error("cloudinary upload failed");
+        const data = await r.json();
+        const newUrl = data.secure_url;
+
+        // تحديث Firestore
+        await updateDoc(doc(db,"works",w.id), { coverUrl: newUrl });
+        done++;
+      } catch(err) {
+        console.warn("فشل watermark لـ:", w.title, err);
+        failed++;
+        done++;
+      }
+    }
+
+    if(bar) bar.style.width="100%";
+    if(lbl) lbl.textContent = `✅ انتهى — ${done-failed} نجح / ${failed} فشل من ${total}`;
+    toast(`✅ تم تطبيق Watermark على ${done-failed} عمل!`);
+    loadWorks(); loadHeroSlider();
+  } catch(e) {
+    toast("❌ خطأ: "+e.message,"e");
+    console.error(e);
+  }
+  if(btn){ btn.disabled=false; btn.textContent="✦ تطبيق Watermark مجدداً"; }
 };
 
 window.resetCreationType = () => {
