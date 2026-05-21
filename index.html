@@ -34,10 +34,9 @@ const app  = initializeApp(FB);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 
-// ─── Supabase Storage Upload ───
-const SUPA_URL  = "https://ahmnycfbfonmztxmwqdi.supabase.co";
-const SUPA_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFobW55Y2ZiZm9ubXp0eG13cWRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjA5NDIsImV4cCI6MjA4ODgzNjk0Mn0.OT3KRneaviAoLb50ZhUe58B4tuX3BD0QODkAgBFcbWY";
-const SUPA_BUCKET = "pdfs";
+// ─── Cloudinary Upload ───
+const CLD_CLOUD  = "ddogh7kzj";
+const CLD_PRESET = "yex2npxo";
 
 async function cloudinaryUpload(file) {
   // ─── التحقق من نوع الملف (MIME) ───
@@ -55,28 +54,24 @@ async function cloudinaryUpload(file) {
     throw new Error(`حجم الملف أكبر من ${maxLabel} — ${isPDF ? 'الحد الأقصى للـ PDF' : 'الحد الأقصى للصور'}`);
   }
 
-  // اسم فريد للملف
-  const ext = file.name.split('.').pop();
-  const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  const filePath = `uploads/${fileName}`;
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("upload_preset", CLD_PRESET);
 
-  const r = await fetch(`${SUPA_URL}/storage/v1/object/${SUPA_BUCKET}/${filePath}`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${SUPA_KEY}`,
-      "Content-Type": file.type,
-      "x-upsert": "true"
-    },
-    body: file
-  });
+  // اختر endpoint المناسب حسب نوع الملف
+  const resourceType = isPDF ? "raw" : "image";
+  const r = await fetch(
+    `https://api.cloudinary.com/v1_1/${CLD_CLOUD}/${resourceType}/upload`,
+    { method: "POST", body: fd }
+  );
 
   if (!r.ok) {
     const err = await r.json().catch(()=>({}));
-    throw new Error(err.message || "فشل الرفع إلى Supabase");
+    throw new Error(err.error?.message || "فشل الرفع إلى Cloudinary");
   }
 
-  // رابط عام للملف
-  return `${SUPA_URL}/storage/v1/object/public/${SUPA_BUCKET}/${filePath}`;
+  const data = await r.json();
+  return data.secure_url;
 }
 
 // ─── XSS Protection: تنظيف نصوص المستخدمين ───
@@ -8337,11 +8332,13 @@ window.handleAudioUpload=async(inp)=>{
   if(file.size>50*1024*1024){typeof toast==="function"&&toast("⚠️ الملف أكبر من 50MB","w");inp.value="";return;}
   const lbl=document.getElementById("audio-upload-lbl");if(lbl)lbl.textContent="⏳ جاري الرفع...";
   try{
-    const SU="https://ahmnycfbfonmztxmwqdi.supabase.co",SK="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFobW55Y2ZiZm9ubXp0eG13cWRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjA5NDIsImV4cCI6MjA4ODgzNjk0Mn0.OT3KRneaviAoLb50ZhUe58B4tuX3BD0QODkAgBFcbWY";
-    const ext=file.name.split('.').pop(),path=`audio/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-    const r=await fetch(`${SU}/storage/v1/object/pdfs/${path}`,{method:"POST",headers:{"Authorization":`Bearer ${SK}`,"Content-Type":file.type,"x-upsert":"true"},body:file});
+    const fd=new FormData();
+    fd.append("file",file);
+    fd.append("upload_preset","yex2npxo");
+    const r=await fetch(`https://api.cloudinary.com/v1_1/ddogh7kzj/raw/upload`,{method:"POST",body:fd});
     if(!r.ok)throw new Error();
-    const url=`${SU}/storage/v1/object/public/pdfs/${path}`;
+    const data=await r.json();
+    const url=data.secure_url;
     const ai=document.getElementById("w-audio");if(ai)ai.value=url;
     if(lbl)lbl.textContent=`✅ ${file.name}`;
     typeof toast==="function"&&toast("✅ تم رفع الملف الصوتي!");
