@@ -621,13 +621,6 @@ function _updateLoadMoreBtn(show){
 window.loadHeroSlider=async()=>{
   const wrap=G("hero-slider");
   if(!wrap) return;
-  // ── صورة واحدة ثابتة فقط ──
-  const PROMO_IMG = "src="YOUR_IMAGE_URL_HERE"";
-  wrap.innerHTML = `<div class="hslide active" style="padding:0;overflow:hidden;height:100%;">
-    <img src="${PROMO_IMG}" alt="MangaVerse" style="width:100%;height:100%;object-fit:cover;object-position:center;display:block;">
-  </div>`;
-  const dots=G("slider-dots"); if(dots) dots.innerHTML="";
-  return;
   try{
     const q=query(collection(db,"works"),orderBy("createdAt","desc"),limit(10));
     const snap=await getDocs(q);
@@ -637,12 +630,10 @@ window.loadHeroSlider=async()=>{
     slides.sort((a,b)=>(b.views||0)-(a.views||0));
     slides=slides.slice(0,5);
 
-    // الشريحة الترويجية الثابتة
-    const PROMO_IMG = "src="YOUR_IMAGE_URL_HERE"";
-    const promoSlide = `<div class="hslide active" style="cursor:default;padding:0;overflow:hidden;"><img src="${PROMO_IMG}" alt="MangaVerse" style="width:100%;height:100%;object-fit:cover;object-position:center;display:block;"></div>`;
 
-    const workSlides = slides.map(w=>`
-      <div class="hslide" data-id="${w.id}"
+
+    const workSlides = slides.map((w,i)=>`
+      <div class="hslide ${i===0?"active":""}" data-id="${w.id}"
         style="background-image:linear-gradient(to left,transparent 30%,rgba(8,8,15,.95) 70%),url('${w.coverUrl||""}');background-size:cover;background-position:center">
         <div class="hslide-content">
           <div class="hslide-badge">${statusBadge(w.status)} ${w.genre}</div>
@@ -656,8 +647,8 @@ window.loadHeroSlider=async()=>{
         </div>
       </div>`).join("");
 
-    wrap.innerHTML = promoSlide + workSlides;
-    const totalSlides = slides.length + 1;
+    wrap.innerHTML = workSlides;
+    const totalSlides = slides.length;
     const dots=G("slider-dots");
     if(dots) dots.innerHTML=Array.from({length:totalSlides},(_,i)=>`<div class="sdot ${i===0?"active":""}" onclick="goSlide(${i})"></div>`).join("");
     startSlider(totalSlides);
