@@ -711,7 +711,7 @@ function defaultHeroSlide(){
 // مشاركة رابط العمل
 window.shareWork=function(e,id,title){
   e.stopPropagation();
-  const url=location.origin+location.pathname+'#/work/'+id;
+  const url=location.origin+'/work/'+id;
   if(navigator.share){ navigator.share({title:title, url:url}); }
   else { navigator.clipboard?.writeText(url).then(()=>toast("📋 تم نسخ رابط العمل!")); }
 };
@@ -961,7 +961,7 @@ window.openWork=async id=>{
 
   loadComments(id);
   // تحديث رابط الصفحة ليصبح قابل للمشاركة
-  const _workUrl=location.origin+location.pathname+'#/work/'+id;
+  const _workUrl=location.origin+'/work/'+id;
   try{ history.pushState({workId:id},'',_workUrl); }catch(_){}
   // تحديث عنوان الصفحة
   document.title=`${w.title} — MangaVerse`;
@@ -2735,7 +2735,7 @@ window.openPublicProfile = async (uid) => {
       : ppWorks.map(d => workCard(d)).join("");
 
     // ── تحديث رابط الصفحة ──
-    history.pushState({uid},'','#/author/'+uid);
+    history.pushState({uid},'','/author/'+uid);
 
   } catch(e) {
     toast("❌ خطأ في تحميل الملف الشخصي","e");
@@ -7520,33 +7520,33 @@ function showPage(n){
   if(n==='home'){window.loadWorks&&loadWorks();window.loadHeroSlider&&loadHeroSlider();window.loadTrending&&loadTrending();}
   if(n==='library') window.loadLibrary&&loadLibrary();
   if(n==='mahbara') window.loadMahbaraArticles&&loadMahbaraArticles();
-  // تحديث الرابط في الشريط
-  if(n==='home') history.replaceState(null,'','#/');
-  else if(n==='profile') history.replaceState(null,'','#/profile');
-  else if(n==='library') history.replaceState(null,'','#/library');
+  // تحديث الرابط في الشريط — Clean URLs (بدون #)
+  if(n==='home') history.replaceState(null,'','/');
+  else if(n==='profile') history.replaceState(null,'','/profile');
+  else if(n==='library') history.replaceState(null,'','/library');
+  else if(n==='anime') history.replaceState(null,'','/anime');
+  else if(n==='about') history.replaceState(null,'','/about');
+  else if(n==='mahbara') history.replaceState(null,'','/mahbara');
 }
 
-// ─── HASH ROUTER ───
-// يقرأ الرابط عند فتح الصفحة أو تغيير الـ hash
+// ─── CLEAN URL ROUTER ───
+// يقرأ الرابط عند فتح الصفحة أو تغيير التنقل
 async function handleRoute(){
-  const hash=location.hash||'#/';
-  const workMatch=hash.match(/^#\/work\/(.+)$/);
-  const authorMatch=hash.match(/^#\/author\/(.+)$/);
+  const path = location.pathname || '/';
+  const workMatch  = path.match(/^\/work\/(.+)$/);
+  const authorMatch = path.match(/^\/author\/(.+)$/);
   if(workMatch){
     const wid=workMatch[1];
-    // انتظر تحميل Firebase أولاً
     await new Promise(r=>setTimeout(r,600));
     openWork(wid);
   } else if(authorMatch){
     const uid=authorMatch[1];
     await new Promise(r=>setTimeout(r,600));
     window.openPublicProfile&&openPublicProfile(uid);
-  } else if(hash==='#/profile'){
-    // انتظر Auth قبل عرض الصفحة الشخصية
+  } else if(path==='/profile'){
     if(window.CU){
       showPage('profile');
     } else {
-      // انتظر حتى يكون Auth جاهزاً
       const waitAuth = setInterval(()=>{
         if(window.CU !== undefined){
           clearInterval(waitAuth);
@@ -7556,23 +7556,28 @@ async function handleRoute(){
       }, 200);
       setTimeout(()=>clearInterval(waitAuth), 5000);
     }
-  } else if(hash==='#/library'){
+  } else if(path==='/library'){
     showPage('library');
-  } else if(hash==='#/anime'){
+  } else if(path==='/anime'){
     showPage('anime');
-  } else if(hash==='#/mahbara'){
+  } else if(path==='/mahbara'){
     showPage('mahbara');
+  } else if(path==='/about'){
+    showPage('about');
   } else {
     showPage('home');
   }
 }
-window.addEventListener('hashchange', handleRoute);
+window.addEventListener('popstate', handleRoute);
 
 // ─── منع زر الرجوع من الخروج من الموقع ───
 (function(){
-  // ادفع حالة أولية فارغة لتكون نقطة العودة
   history.pushState({mg:1},'',location.href);
   window.addEventListener('popstate', function(e){
+    if(e.state && e.state.mg === 1){
+      // حالة internal — تجاهل، handleRoute سيتولى الأمر
+      return;
+    }
     // 1) أغلق أي modal مفتوح
     const openMo = document.querySelector('.mo.open');
     if(openMo){ closeModal(openMo.id); history.pushState({mg:1},'',location.href); return; }
@@ -7582,10 +7587,10 @@ window.addEventListener('hashchange', handleRoute);
     }
     // 3) ارجع للصفحة الرئيسية إن لم تكن فيها
     if(window._curPage && window._curPage !== 'home'){
-      showPage('home'); history.pushState({mg:1},'','#/'); return;
+      showPage('home'); history.pushState({mg:1},'',' /'); return;
     }
     // 4) في الصفحة الرئيسية — أعد الدفع لمنع الخروج
-    history.pushState({mg:1},'','#/');
+    history.pushState({mg:1},'','/');
   });
 })();
 // شغّل الراوتر بعد تحميل الصفحة
@@ -7608,10 +7613,10 @@ function closeModal(id){
     // ✅ إعادة ضبط قفل openWork عند الإغلاق
     window._openingWork=false;
     const cur=window._curPage||'home';
-    if(cur==='home') history.pushState(null,'','#/');
-    else if(cur==='profile') history.pushState(null,'','#/profile');
-    else if(cur==='library') history.pushState(null,'','#/library');
-    else history.pushState(null,'','#/');
+    if(cur==='home') history.pushState(null,'','/');
+    else if(cur==='profile') history.pushState(null,'','/profile');
+    else if(cur==='library') history.pushState(null,'','/library');
+    else history.pushState(null,'','/');
   }
 }
 document.querySelectorAll('.mo').forEach(o=>o.addEventListener('click',function(e){if(e.target===this)closeModal(this.id);}));
@@ -7889,7 +7894,7 @@ window.showPage=function(n){
   _origShowPage(n);
   if(n==='about') loadAboutStats();
   if(n==='anime'&&!window._animeLoaded){ window._animeLoaded=true; fetchAnime(true); }
-  if(n==='anime') history.replaceState(null,'','#/anime');
+  if(n==='anime') history.replaceState(null,'','/anime');
 };
 
 
