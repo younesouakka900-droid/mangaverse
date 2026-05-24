@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>MangaVerse — منصة المانجا العربية</title>
-<meta name="description" content="منصة المانجا والإبداع العربي — اقرأ وانشر وشارك أعمالك">
+<title>MangaVerse | عالمك لقراءة المانجا والقصص المصورة</title>
+<meta name="description" content="منصة MangaVerse، وجهتك لاكتشاف وقراءة أحدث فصول المانجا والقصص المصورة المليئة بالتشويق والخيال. اقرأ وانشر أعمالك مجاناً بالعربية.">
 <meta property="og:site_name" content="MangaVerse">
 <meta property="og:type" content="website">
-<meta id="og-title" property="og:title" content="MangaVerse — منصة المانجا العربية">
+<meta id="og-title" property="og:title" content="MangaVerse | عالمك لقراءة المانجا والقصص المصورة">
 <meta id="og-desc" property="og:description" content="عالم المانجا والروايات في مكان واحد! آلاف الأعمال من مبدعين عرب — اقرأ وانشر مجاناً">
 <meta id="og-image" property="og:image" content="https://raw.githubusercontent.com/younesouakka900-droid/%D8%B9%D8%A7%D9%84%D9%85-%D8%A7%D9%84%D9%85%D8%A7%D9%86%D8%AC%D8%A7/main/og-image.jpg">
 <meta id="og-url" property="og:url" content="https://mangaverse-one-lac.vercel.app">
@@ -6149,14 +6149,19 @@ if("serviceWorker" in navigator){
       <div>
         <div class="fg"><label>اسم العمل *</label><input class="fc" id="w-title" type="text" placeholder="مثال: ظلال القدر"></div>
         <div class="fg"><label>التصنيف *</label>
-          <select class="fc" id="w-type"><option value="">اختر التصنيف</option><option>مانجا</option><option>ويبتون</option><option>رواية مصورة</option><option>رواية</option><option>كتاب</option><option>مجلة</option></select>
+          <select class="fc" id="w-type"><option value="">اختر التصنيف</option><option>مانجا</option><option>ويبتون</option><option>رواية مصورة</option><option>رواية</option><option>كتاب</option><option>مجلة</option><option>كتب نادرة</option><option>كتب تراثية</option><option>كتب إسلامية</option><option>كتب ظلامية</option><option>كتب مرعبة</option><option>كتب محظورة</option></select>
         </div>
         <div class="fg"><label>النوع *</label>
           <select class="fc" id="w-genre"><option value="">اختر النوع</option>
             <option>أكشن</option><option>رومانسي</option><option>فانتازيا</option>
             <option>فانتازيا مظلمة</option><option>رعب</option><option>رعب نفسي</option>
             <option>ديستوبيا</option><option>كوميدي</option><option>درامي</option>
-            <option>غموض</option><option>خيال علمي</option></select>
+            <option>غموض</option><option>خيال علمي</option>
+            <option>تراث عربي</option><option>فولكلور وأساطير</option>
+            <option>إسلامي</option><option>واقعي</option><option>ملحمي</option>
+            <option>خيال علمي عربي</option><option>مأساوي</option>
+            <option>ساخر</option><option>ظلامي داكن</option>
+            <option>⚠️ محتوى حساس</option><option>🔞 عنف شديد +18</option></select>
         </div>
         <div class="fg"><label>حالة العمل *</label>
           <select class="fc" id="w-status" onchange="toggleComingSoon(this.value)"><option value="مستمر">🔄 مستمر</option><option value="مكتمل">✅ مكتمل</option><option value="متوقف">⏸️ متوقف</option><option value="قريباً">🔜 قريباً</option></select>
@@ -6610,8 +6615,8 @@ if("serviceWorker" in navigator){
   <!-- Hero -->
   <div class="about-hero">
     <div style="position:relative;z-index:1">
-      <div class="about-hero-title">من نحن</div>
-      <div class="about-hero-sub">القصة وراء MangaVerse</div>
+      <div class="about-hero-title">مؤسس المنصة</div>
+      <div class="about-hero-sub">الشخص وراء MangaVerse</div>
     </div>
   </div>
 
@@ -6759,7 +6764,7 @@ if("serviceWorker" in navigator){
     <a class="sb-link" id="sb-library-link" onclick="closeSidebar();window.CU?showPage('library'):openModal('m-auth')">📚 مكتبتي</a>
     <a class="sb-link" onclick="closeSidebar();showPage('home');setTimeout(()=>G('browse-sec')?.scrollIntoView({behavior:'smooth'}),100)">🔍 تصفح الأعمال</a>
     <a class="sb-link" onclick="closeSidebar();showPage('anime')">🎌 عالم الأنمي</a>
-    <a class="sb-link" onclick="closeSidebar();showPage('about')">💡 من نحن</a>
+    <a class="sb-link" onclick="closeSidebar();showPage('about')">💡 مؤسس المنصة</a>
     <a class="sb-link" onclick="closeSidebar();showPage('mahbara')">🖋️ محبرة الخيال</a>
     <a class="sb-link" href="https://mahbarat-alkhiyal.com" target="_blank" onclick="closeSidebar()">✦ محبرة الخيال</a>
     <a class="sb-link sb-admin-link" id="sb-admin-link" onclick="closeSidebar();window.openAdminDashboard()" style="display:none">⚙️ لوحة الإدارة</a>
@@ -6951,6 +6956,30 @@ if("serviceWorker" in navigator){
         <div class="genre-card" onclick="filterWorks(document.querySelector('.fbtn'),'درامي');document.getElementById('browse-sec').scrollIntoView({behavior:'smooth'})">
           <div class="genre-card-icon">🎭</div><div class="genre-card-name">درامي</div>
         </div>
+        <div class="genre-card" onclick="filterWorks(document.querySelector('.fbtn'),'تراث عربي');document.getElementById('browse-sec').scrollIntoView({behavior:'smooth'})">
+          <div class="genre-card-icon">📜</div><div class="genre-card-name">تراث عربي</div>
+        </div>
+        <div class="genre-card" onclick="filterWorks(document.querySelector('.fbtn'),'فولكلور وأساطير');document.getElementById('browse-sec').scrollIntoView({behavior:'smooth'})">
+          <div class="genre-card-icon">🦅</div><div class="genre-card-name">فولكلور وأساطير</div>
+        </div>
+        <div class="genre-card" onclick="filterWorks(document.querySelector('.fbtn'),'إسلامي');document.getElementById('browse-sec').scrollIntoView({behavior:'smooth'})">
+          <div class="genre-card-icon">🕌</div><div class="genre-card-name">إسلامي</div>
+        </div>
+        <div class="genre-card" onclick="filterWorks(document.querySelector('.fbtn'),'واقعي');document.getElementById('browse-sec').scrollIntoView({behavior:'smooth'})">
+          <div class="genre-card-icon">🌍</div><div class="genre-card-name">واقعي</div>
+        </div>
+        <div class="genre-card" onclick="filterWorks(document.querySelector('.fbtn'),'ملحمي');document.getElementById('browse-sec').scrollIntoView({behavior:'smooth'})">
+          <div class="genre-card-icon">🗡️</div><div class="genre-card-name">ملحمي</div>
+        </div>
+        <div class="genre-card" onclick="filterWorks(document.querySelector('.fbtn'),'مأساوي');document.getElementById('browse-sec').scrollIntoView({behavior:'smooth'})">
+          <div class="genre-card-icon">💔</div><div class="genre-card-name">مأساوي</div>
+        </div>
+        <div class="genre-card" onclick="filterWorks(document.querySelector('.fbtn'),'ساخر');document.getElementById('browse-sec').scrollIntoView({behavior:'smooth'})">
+          <div class="genre-card-icon">🃏</div><div class="genre-card-name">ساخر</div>
+        </div>
+        <div class="genre-card" onclick="filterWorks(document.querySelector('.fbtn'),'ظلامي داكن');document.getElementById('browse-sec').scrollIntoView({behavior:'smooth'})">
+          <div class="genre-card-icon">🖤</div><div class="genre-card-name">ظلامي داكن</div>
+        </div>
       </div>
 
     </div>
@@ -6991,6 +7020,12 @@ if("serviceWorker" in navigator){
                 <button class="achip" data-val="كتاب" onclick="setAdvChip(this,'type')">كتاب</button>
                 <button class="achip" data-val="رواية" onclick="setAdvChip(this,'type')">رواية</button>
                 <button class="achip" data-val="مجلة" onclick="setAdvChip(this,'type')">مجلة</button>
+                <button class="achip" data-val="كتب نادرة" onclick="setAdvChip(this,'type')">كتب نادرة</button>
+                <button class="achip" data-val="كتب تراثية" onclick="setAdvChip(this,'type')">كتب تراثية</button>
+                <button class="achip" data-val="كتب إسلامية" onclick="setAdvChip(this,'type')">كتب إسلامية</button>
+                <button class="achip" data-val="كتب ظلامية" onclick="setAdvChip(this,'type')">كتب ظلامية</button>
+                <button class="achip" data-val="كتب مرعبة" onclick="setAdvChip(this,'type')">كتب مرعبة</button>
+                <button class="achip" data-val="كتب محظورة" onclick="setAdvChip(this,'type')">كتب محظورة</button>
               </div>
             </div>
 
@@ -7009,6 +7044,17 @@ if("serviceWorker" in navigator){
                 <button class="achip" data-val="درامي" onclick="setAdvChip(this,'genre')">درامي</button>
                 <button class="achip" data-val="غموض" onclick="setAdvChip(this,'genre')">غموض</button>
                 <button class="achip" data-val="خيال علمي" onclick="setAdvChip(this,'genre')">خيال علمي</button>
+                <button class="achip" data-val="تراث عربي" onclick="setAdvChip(this,'genre')">تراث عربي</button>
+                <button class="achip" data-val="فولكلور وأساطير" onclick="setAdvChip(this,'genre')">فولكلور وأساطير</button>
+                <button class="achip" data-val="إسلامي" onclick="setAdvChip(this,'genre')">إسلامي</button>
+                <button class="achip" data-val="واقعي" onclick="setAdvChip(this,'genre')">واقعي</button>
+                <button class="achip" data-val="ملحمي" onclick="setAdvChip(this,'genre')">ملحمي</button>
+                <button class="achip" data-val="خيال علمي عربي" onclick="setAdvChip(this,'genre')">خيال علمي عربي</button>
+                <button class="achip" data-val="مأساوي" onclick="setAdvChip(this,'genre')">مأساوي</button>
+                <button class="achip" data-val="ساخر" onclick="setAdvChip(this,'genre')">ساخر</button>
+                <button class="achip" data-val="ظلامي داكن" onclick="setAdvChip(this,'genre')">ظلامي داكن</button>
+                <button class="achip" data-val="⚠️ محتوى حساس" onclick="setAdvChip(this,'genre')">⚠️ محتوى حساس</button>
+                <button class="achip" data-val="🔞 عنف شديد +18" onclick="setAdvChip(this,'genre')">🔞 عنف شديد +18</button>
               </div>
             </div>
 
@@ -7109,7 +7155,7 @@ if("serviceWorker" in navigator){
         💙 ادعم المنصة عبر PayPal
       </a>
     </div>
-    <p>© 2025 MangaVerse — صُنع بـ ❤️ للمبدعين العرب | YOUNES OUAKKA</p>
+    <p>© 2026 MangaVerse — صُنع بـ ❤️ للمبدعين العرب | YOUNES OUAKKA</p>
     <p style="margin-top:.5rem">
       <a href="#" onclick="showPage('mahbara');return false">✦ محبرة الخيال — مجتمع المبدعين العرب</a>
     </p>
@@ -7469,10 +7515,10 @@ if("serviceWorker" in navigator){
       <div>
         <div class="fg"><label>اسم العمل *</label><input class="fc" id="ew-title" type="text"></div>
         <div class="fg"><label>التصنيف</label>
-          <select class="fc" id="ew-type"><option value="">اختر</option><option>مانجا</option><option>ويبتون</option><option>رواية مصورة</option><option>رواية</option><option>كتاب</option><option>مجلة</option></select>
+          <select class="fc" id="ew-type"><option value="">اختر</option><option>مانجا</option><option>ويبتون</option><option>رواية مصورة</option><option>رواية</option><option>كتاب</option><option>مجلة</option><option>كتب نادرة</option><option>كتب تراثية</option><option>كتب إسلامية</option><option>كتب ظلامية</option><option>كتب مرعبة</option><option>كتب محظورة</option></select>
         </div>
         <div class="fg"><label>النوع</label>
-          <select class="fc" id="ew-genre"><option value="">اختر</option><option>أكشن</option><option>رومانسي</option><option>فانتازيا</option><option>فانتازيا مظلمة</option><option>رعب</option><option>رعب نفسي</option><option>ديستوبيا</option><option>كوميدي</option><option>درامي</option><option>غموض</option><option>خيال علمي</option></select>
+          <select class="fc" id="ew-genre"><option value="">اختر</option><option>أكشن</option><option>رومانسي</option><option>فانتازيا</option><option>فانتازيا مظلمة</option><option>رعب</option><option>رعب نفسي</option><option>ديستوبيا</option><option>كوميدي</option><option>درامي</option><option>غموض</option><option>خيال علمي</option><option>تراث عربي</option><option>فولكلور وأساطير</option><option>إسلامي</option><option>واقعي</option><option>ملحمي</option><option>خيال علمي عربي</option><option>مأساوي</option><option>ساخر</option><option>ظلامي داكن</option><option>⚠️ محتوى حساس</option><option>🔞 عنف شديد +18</option></select>
         </div>
         <div class="fg"><label>حالة العمل</label>
           <select class="fc" id="ew-status"><option value="مستمر">🔄 مستمر</option><option value="مكتمل">✅ مكتمل</option><option value="متوقف">⏸️ متوقف</option></select>
