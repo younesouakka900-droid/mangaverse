@@ -60,9 +60,16 @@ async function cloudinaryUpload(file) {
 
   // اختر endpoint المناسب حسب نوع الملف
   const resourceType = isPDF ? "raw" : "image";
+  const fd2 = new FormData();
+  fd2.append("file", file);
+  fd2.append("upload_preset", CLD_PRESET);
+  if(isPDF){
+    fd2.append("access_mode", "public");
+    fd2.append("type", "upload");
+  }
   const r = await fetch(
     `https://api.cloudinary.com/v1_1/${CLD_CLOUD}/${resourceType}/upload`,
-    { method: "POST", body: fd }
+    { method: "POST", body: fd2 }
   );
 
   if (!r.ok) {
@@ -8867,13 +8874,49 @@ async function _mvLoadPDF(url){
   }
   var ltxt=G('mv-loading-text'); if(ltxt) ltxt.textContent='جاري تحميل الملف...';
   var lp=G('mv-load-prog'); if(lp) lp.style.width='5%';
+
+  // ── تحويل رابط Cloudinary لدعم CORS ──
+  function _fixCloudinaryUrl(u){
+    if(!u) return u;
+    // تحويل /raw/upload/ إلى /image/upload/ مع fl_attachment:false
+    if(u.includes('res.cloudinary.com') && u.includes('/raw/upload/')){
+      return u.replace('/raw/upload/', '/raw/upload/fl_attachment:false/');
+    }
+    return u;
+  }
+
+  // ── محاولة تحميل عبر fetch أولاً (يتجاوز بعض مشاكل CORS) ──
+  async function _fetchPdfBytes(u){
+    try{
+      var r=await fetch(u,{method:'GET',mode:'cors',credentials:'omit'});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      var buf=await r.arrayBuffer();
+      return new Uint8Array(buf);
+    }catch(e){ return null; }
+  }
+
+  var fixedUrl = _fixCloudinaryUrl(url);
+
   try{
-    var loadingTask=pdfjsLib.getDocument({
-      url:url,
+    // جرب fetch أولاً للحصول على البايتات مباشرة
+    var pdfBytes = await _fetchPdfBytes(fixedUrl);
+
+    var taskOpts = {
       cMapUrl:'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
       cMapPacked:true,
       standardFontDataUrl:'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/',
-    });
+      disableRange: false,
+      disableStream: false,
+    };
+
+    if(pdfBytes){
+      taskOpts.data = pdfBytes;
+    } else {
+      taskOpts.url = fixedUrl;
+      taskOpts.withCredentials = false;
+    }
+
+    var loadingTask=pdfjsLib.getDocument(taskOpts);
     loadingTask.onProgress=function(data){
       if(data.total>0){
         var pct=Math.round((data.loaded/data.total)*80)+5;
@@ -8894,8 +8937,22 @@ async function _mvLoadPDF(url){
     _mvCheckResume();
   }catch(e){
     console.error('PDF error:',e);
-    _mvShowError('تعذّر تحميل الملف — تأكد من صحة الرابط أو إعدادات Cloudinary');
+    // ── Fallback: عرض عبر Google Docs Viewer ──
+    _mvShowPDFFallback(url);
   }
+}
+
+function _mvShowPDFFallback(url){
+  var container=G('mv-reader-body');
+  if(!container) return;
+  var loading=G('mv-reader-loading'); if(loading) loading.style.display='none';
+  var googleUrl='https://docs.google.com/viewer?url='+encodeURIComponent(url)+'&embedded=true';
+  container.innerHTML=
+    '<div style="display:flex;flex-direction:column;height:100%;background:#0d0d1a">'+
+    '<iframe src="'+googleUrl+'" style="flex:1;width:100%;border:none;background:#fff" allowfullscreen></iframe>'+
+    '<div style="padding:.8rem 1rem;background:#1a1a2e;border-top:1px solid rgba(255,255,255,.07);display:flex;gap:.8rem;align-items:center;justify-content:center">'+
+    '<a href="'+url+'" target="_blank" rel="noopener" style="background:var(--red,#e8192c);color:#fff;padding:.7rem 1.8rem;border-radius:12px;font-family:Tajawal;font-weight:800;font-size:.95rem;text-decoration:none">📥 تحميل PDF</a>'+
+    '</div></div>';
 }
 
 async function _mvCalcPDFScale(){
