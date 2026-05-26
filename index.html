@@ -1361,7 +1361,7 @@ window.openPdfViewer = async (src, title, w) => {
   window.MangaReaderOpen({
     title: title || (w&&w.title) || 'رواية',
     mode: 'pdf',
-    fileUrl: fixedSrc,
+    pdfUrl: fixedSrc,
     workId: w&&w.id,
     onProgress: function(pct){ if(w&&w.id) { try{ saveProgress&&saveProgress(w.id,pct); }catch(e){} } }
   });
@@ -3488,7 +3488,7 @@ window.openNovelReader = async function(w, chapters=[], chapterIdx=0){
     var fixedUrl = pdfUrl;
     if(fixedUrl.includes('raw.githubusercontent.com')) fixedUrl = fixedUrl.replace('raw.githubusercontent.com','cdn.jsdelivr.net/gh').replace('/main/','@main/').replace('/master/','@master/');
     if(fixedUrl.includes('res.cloudinary.com')&&fixedUrl.includes('/raw/upload/')) fixedUrl = fixedUrl.replace('/raw/upload/','/raw/upload/fl_attachment:false/');
-    window.MangaReaderOpen({title:w&&w.title||'رواية',mode:'pdf',fileUrl:fixedUrl,workId:w&&w.id,chapters:chapters||[],chapterIdx:chapterIdx||0});
+    window.MangaReaderOpen({title:w&&w.title||'رواية',mode:'pdf',pdfUrl:fixedUrl,workId:w&&w.id,chapters:chapters||[],chapterIdx:chapterIdx||0});
     return;
   }
   _nvWork = w; _nvChapters = chapters; _nvChapterIdx = chapterIdx;
