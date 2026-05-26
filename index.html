@@ -38,6 +38,35 @@ const db   = getFirestore(app);
 const CLD_CLOUD  = "ddogh7kzj";
 const CLD_PRESET = "yex2npxo";
 
+// ─── GitHub PDF Storage (عبر Vercel Serverless Function) ───
+async function githubUploadPDF(file) {
+  // تحويل الملف إلى base64
+  const base64 = await new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload = () => res(reader.result.split(',')[1]);
+    reader.onerror = () => rej(new Error("فشل قراءة الملف"));
+    reader.readAsDataURL(file);
+  });
+
+  // إرسال الملف إلى Vercel Function (الـ token سري على السيرفر)
+  const r = await fetch('/api/upload-pdf', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fileName: file.name,
+      fileBase64: base64,
+    }),
+  });
+
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.error || "فشل الرفع إلى GitHub");
+  }
+
+  const data = await r.json();
+  return data.url;
+}
+
 async function cloudinaryUpload(file) {
   // ─── التحقق من نوع الملف (MIME) ───
   const ALLOWED_TYPES = [
@@ -48,28 +77,25 @@ async function cloudinaryUpload(file) {
     throw new Error("نوع الملف غير مسموح به — يُسمح فقط بـ JPG/PNG/WEBP/GIF/PDF");
   }
   const isPDF = file.type === 'application/pdf';
-  const maxSize = isPDF ? 50 * 1024 * 1024 : 5 * 1024 * 1024;
-  const maxLabel = isPDF ? "50MB" : "5MB";
+  const maxSize = isPDF ? 100 * 1024 * 1024 : 5 * 1024 * 1024;
+  const maxLabel = isPDF ? "100MB" : "5MB";
   if(file.size > maxSize) {
-    throw new Error(`حجم الملف أكبر من ${maxLabel} — ${isPDF ? 'الحد الأقصى للـ PDF' : 'الحد الأقصى للصور'}`);
+    throw new Error(`حجم الملف أكبر من ${maxLabel}`);
   }
 
+  // ─── PDF يذهب إلى GitHub + jsDelivr ───
+  if (isPDF) {
+    return await githubUploadPDF(file);
+  }
+
+  // ─── الصور تبقى على Cloudinary ───
   const fd = new FormData();
   fd.append("file", file);
   fd.append("upload_preset", CLD_PRESET);
 
-  // اختر endpoint المناسب حسب نوع الملف
-  const resourceType = isPDF ? "raw" : "image";
-  const fd2 = new FormData();
-  fd2.append("file", file);
-  fd2.append("upload_preset", CLD_PRESET);
-  if(isPDF){
-    fd2.append("access_mode", "public");
-    fd2.append("type", "upload");
-  }
   const r = await fetch(
-    `https://api.cloudinary.com/v1_1/${CLD_CLOUD}/${resourceType}/upload`,
-    { method: "POST", body: fd2 }
+    `https://api.cloudinary.com/v1_1/${CLD_CLOUD}/image/upload`,
+    { method: "POST", body: fd }
   );
 
   if (!r.ok) {
@@ -8875,10 +8901,19 @@ async function _mvLoadPDF(url){
   var ltxt=G('mv-loading-text'); if(ltxt) ltxt.textContent='جاري تحميل الملف...';
   var lp=G('mv-load-prog'); if(lp) lp.style.width='5%';
 
-  // ── تحويل رابط Cloudinary لدعم CORS ──
+  // ── تحويل الروابط لدعم CORS ──
   function _fixCloudinaryUrl(u){
     if(!u) return u;
-    // تحويل /raw/upload/ إلى /image/upload/ مع fl_attachment:false
+    // روابط jsDelivr — تعمل مباشرة بدون تعديل
+    if(u.includes('cdn.jsdelivr.net')) return u;
+    // روابط GitHub الخام — حوّلها إلى jsDelivr
+    if(u.includes('raw.githubusercontent.com')){
+      return u
+        .replace('raw.githubusercontent.com','cdn.jsdelivr.net/gh')
+        .replace('/main/',  '@main/')
+        .replace('/master/','@master/');
+    }
+    // Cloudinary raw — أضف fl_attachment:false
     if(u.includes('res.cloudinary.com') && u.includes('/raw/upload/')){
       return u.replace('/raw/upload/', '/raw/upload/fl_attachment:false/');
     }
