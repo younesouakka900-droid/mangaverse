@@ -9033,9 +9033,22 @@ function _mvStartMode(mode,opts){
 
 async function _mvLoadPDF(url){
   if(!url){ _mvShowError('لم يتم تحديد رابط الملف'); return; }
-  if(window.pdfjsLib){
-    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  // ── تأكد من تحميل pdfjsLib قبل المتابعة ──
+  if(!window.pdfjsLib){
+    // انتظر حتى تحمّل (max 5 ثواني)
+    var waited=0;
+    while(!window.pdfjsLib && waited<50){
+      await new Promise(r=>setTimeout(r,100));
+      waited++;
+    }
+    if(!window.pdfjsLib){
+      _mvShowError('فشل تحميل مكتبة PDF — تحقق من اتصالك بالإنترنت');
+      return;
+    }
   }
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
   var ltxt=G('mv-loading-text'); if(ltxt) ltxt.textContent='جاري تحميل الملف...';
   var lp=G('mv-load-prog'); if(lp) lp.style.width='5%';
 
@@ -9117,16 +9130,11 @@ async function _mvLoadPDF(url){
 }
 
 function _mvShowPDFFallback(url){
-  var container=G('mv-reader-body');
-  if(!container) return;
-  var loading=G('mv-reader-loading'); if(loading) loading.style.display='none';
-  var googleUrl='https://docs.google.com/viewer?url='+encodeURIComponent(url)+'&embedded=true';
-  container.innerHTML=
-    '<div style="display:flex;flex-direction:column;height:100%;background:#0d0d1a">'+
-    '<iframe src="'+googleUrl+'" style="flex:1;width:100%;border:none;background:#fff" allowfullscreen></iframe>'+
-    '<div style="padding:.8rem 1rem;background:#1a1a2e;border-top:1px solid rgba(255,255,255,.07);display:flex;gap:.8rem;align-items:center;justify-content:center">'+
-    '<a href="'+url+'" target="_blank" rel="noopener" style="background:var(--red,#e8192c);color:#fff;padding:.7rem 1.8rem;border-radius:12px;font-family:Tajawal;font-weight:800;font-size:.95rem;text-decoration:none">📥 تحميل PDF</a>'+
-    '</div></div>';
+  var loading=G('mv-reader-loading');
+  if(loading){
+    loading.style.display='flex';
+    loading.innerHTML='<div style="text-align:center;padding:2rem 1.5rem"><div style="font-size:2.5rem;margin-bottom:.8rem">⚠️</div><div style="font-size:.95rem;font-weight:700;color:rgba(232,25,44,.9);margin-bottom:1.5rem">تعذّر تحميل الملف<br><span style=\"font-size:.8rem;color:rgba(255,255,255,.4);font-weight:400\">قد يكون بسبب CORS أو اتصال الشبكة</span></div><a href='+url+' target=\"_blank\" rel=\"noopener\" style=\"display:inline-block;background:#e8192c;color:#fff;padding:.75rem 2rem;border-radius:12px;font-family:Tajawal;font-weight:800;font-size:.95rem;text-decoration:none\">📥 تحميل PDF مباشرة</a></div>';
+  }
 }
 
 async function _mvCalcPDFScale(){
