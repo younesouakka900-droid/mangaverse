@@ -9033,109 +9033,30 @@ function _mvStartMode(mode,opts){
 
 async function _mvLoadPDF(url){
   if(!url){ _mvShowError('لم يتم تحديد رابط الملف'); return; }
-
-  // ── تأكد من تحميل pdfjsLib قبل المتابعة ──
-  if(!window.pdfjsLib){
-    // انتظر حتى تحمّل (max 5 ثواني)
-    var waited=0;
-    while(!window.pdfjsLib && waited<50){
-      await new Promise(r=>setTimeout(r,100));
-      waited++;
-    }
-    if(!window.pdfjsLib){
-      _mvShowError('فشل تحميل مكتبة PDF — تحقق من اتصالك بالإنترنت');
-      return;
-    }
-  }
-  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-  var ltxt=G('mv-loading-text'); if(ltxt) ltxt.textContent='جاري تحميل الملف...';
-  var lp=G('mv-load-prog'); if(lp) lp.style.width='5%';
-
-  // ── تحويل الروابط لدعم CORS ──
-  function _fixCloudinaryUrl(u){
-    if(!u) return u;
-    // روابط jsDelivr — تعمل مباشرة بدون تعديل
-    if(u.includes('cdn.jsdelivr.net')) return u;
-    // روابط GitHub الخام — حوّلها إلى jsDelivr
-    if(u.includes('raw.githubusercontent.com')){
-      return u
-        .replace('raw.githubusercontent.com','cdn.jsdelivr.net/gh')
-        .replace('/main/',  '@main/')
-        .replace('/master/','@master/');
-    }
-    // Cloudinary raw — أضف fl_attachment:false
-    if(u.includes('res.cloudinary.com') && u.includes('/raw/upload/')){
-      return u.replace('/raw/upload/', '/raw/upload/fl_attachment:false/');
-    }
-    return u;
-  }
-
-  // ── محاولة تحميل عبر fetch أولاً (يتجاوز بعض مشاكل CORS) ──
-  async function _fetchPdfBytes(u){
-    try{
-      var r=await fetch(u,{method:'GET',mode:'cors',credentials:'omit'});
-      if(!r.ok) throw new Error('HTTP '+r.status);
-      var buf=await r.arrayBuffer();
-      return new Uint8Array(buf);
-    }catch(e){ return null; }
-  }
-
-  var fixedUrl = _fixCloudinaryUrl(url);
-
-  try{
-    // جرب fetch أولاً للحصول على البايتات مباشرة
-    var pdfBytes = await _fetchPdfBytes(fixedUrl);
-
-    var taskOpts = {
-      cMapUrl:'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
-      cMapPacked:true,
-      standardFontDataUrl:'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/',
-      disableRange: false,
-      disableStream: false,
-    };
-
-    if(pdfBytes){
-      taskOpts.data = pdfBytes;
-    } else {
-      taskOpts.url = fixedUrl;
-      taskOpts.withCredentials = false;
-    }
-
-    var loadingTask=pdfjsLib.getDocument(taskOpts);
-    loadingTask.onProgress=function(data){
-      if(data.total>0){
-        var pct=Math.round((data.loaded/data.total)*80)+5;
-        if(lp) lp.style.width=pct+'%';
-        if(ltxt) ltxt.textContent='جاري التحميل... '+Math.round(data.loaded/1024)+'KB';
-      }
-    };
-    MV.pdfDoc=await loadingTask.promise;
-    MV.pdfTotalPages=MV.pdfDoc.numPages;
-    if(lp) lp.style.width='95%';
-    var tpl=G('mv-total-pages-lbl'); if(tpl) tpl.textContent=MV.pdfTotalPages;
-    var pi=G('mv-page-inp'); if(pi) pi.max=MV.pdfTotalPages;
-    var pil=G('mv-page-inp-lbl'); if(pil) pil.textContent=MV.pdfCurrentPage||1;
-    G('mv-reader-loading').style.display='none';
-    G('mv-pdf-container').style.display='flex';
-    await _mvCalcPDFScale();
-    MV.pdfCurrentPage=1;
-    await _mvRenderAllPDFPages();
-    _mvCheckResume();
-  }catch(e){
-    console.error('PDF error:',e);
-    // ── Fallback: عرض عبر Google Docs Viewer ──
-    _mvShowPDFFallback(url);
-  }
-}
-
-function _mvShowPDFFallback(url){
   var loading=G('mv-reader-loading');
-  if(loading){
-    loading.style.display='flex';
-    loading.innerHTML='<div style="text-align:center;padding:2rem 1.5rem"><div style="font-size:2.5rem;margin-bottom:.8rem">⚠️</div><div style="font-size:.95rem;font-weight:700;color:rgba(232,25,44,.9);margin-bottom:1.5rem">تعذّر تحميل الملف<br><span style=\"font-size:.8rem;color:rgba(255,255,255,.4);font-weight:400\">قد يكون بسبب CORS أو اتصال الشبكة</span></div><a href='+url+' target=\"_blank\" rel=\"noopener\" style=\"display:inline-block;background:#e8192c;color:#fff;padding:.75rem 2rem;border-radius:12px;font-family:Tajawal;font-weight:800;font-size:.95rem;text-decoration:none\">📥 تحميل PDF مباشرة</a></div>';
-  }
+  if(loading) loading.style.display='none';
+  var body=G('mv-reader-body');
+  if(!body) return;
+  // إخفاء كل الـ containers
+  ['mv-pdf-container','mv-novel-container','mv-images-container'].forEach(function(id){
+    var el=G(id); if(el) el.style.display='none';
+  });
+  // عرض Google Docs Viewer مباشرة
+  var googleUrl='https://docs.google.com/viewer?url='+encodeURIComponent(url)+'&embedded=true';
+  body.innerHTML=
+    '<div style="display:flex;flex-direction:column;height:100%;background:#0d0d1a">'+
+    '<iframe id="mv-gdocs-frame" src="'+googleUrl+'" style="flex:1;width:100%;border:none" allowfullscreen onload="this.parentNode.querySelector('#mv-gdocs-loading').style.display='none'"></iframe>'+
+    '<div id="mv-gdocs-loading" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0d0d1a;pointer-events:none">'+
+    '<div class="spin" style="font-size:2rem">⏳</div>'+
+    '<div style="color:rgba(255,255,255,.5);margin-top:1rem;font-family:Tajawal;font-size:.95rem">جاري تحميل الملف...</div>'+
+    '</div>'+
+    '<div style="padding:.8rem 1rem;background:#1a1a2e;border-top:1px solid rgba(255,255,255,.07);display:flex;gap:.8rem;align-items:center;justify-content:center;flex-shrink:0">'+
+    '<a href="'+url+'" target="_blank" rel="noopener" style="background:#e8192c;color:#fff;padding:.6rem 1.5rem;border-radius:10px;font-family:Tajawal;font-weight:800;font-size:.88rem;text-decoration:none">📥 تحميل PDF</a>'+
+    '<a href="https://docs.google.com/viewer?url='+encodeURIComponent(url)+'" target="_blank" rel="noopener" style="background:rgba(255,255,255,.08);color:rgba(255,255,255,.6);padding:.6rem 1.5rem;border-radius:10px;font-family:Tajawal;font-size:.85rem;text-decoration:none">🌐 فتح في تبويب</a>'+
+    '</div></div>';
 }
+
+function _mvShowPDFFallback(url){ _mvLoadPDF(url); }
 
 async function _mvCalcPDFScale(){
   var page=await MV.pdfDoc.getPage(1);
