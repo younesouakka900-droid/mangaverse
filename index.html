@@ -5580,158 +5580,212 @@ if("serviceWorker" in navigator){
 ════════════════════════════════════════════ -->
 <style>
 /* ── متغيرات القارئ الجديد ── */
+/* ═══════════════════════════════════════
+   قارئ MangaVerse — تصميم كتوباتي
+════════════════════════════════════════ */
+html.reader-open, body.reader-open { overflow: hidden !important; height: 100% !important; }
+
 #mv-reader-shell {
   display: none;
   position: fixed;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  z-index: 2147483647 !important;
-  background: var(--mvrd-bg, #0d0d1a);
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 2147483647;
+  background: #111;
   flex-direction: column;
   overflow: hidden;
   font-family: 'Tajawal', sans-serif;
-  transform: none !important;
 }
-#mv-reader-shell.open { display: flex !important; }
+#mv-reader-shell.open { display: flex; }
 
-/* ثيمات */
-#mv-reader-shell[data-theme="sepia"]  { --mvrd-bg:#2c1f0e; --mvrd-page:#3a2a14; --mvrd-text:#e8d5b0; --mvrd-br:rgba(232,213,176,.1); --mvrd-btn:rgba(232,213,176,.07); --mvrd-bth:rgba(232,213,176,.15); }
-#mv-reader-shell[data-theme="light"]  { --mvrd-bg:#f5f0eb; --mvrd-page:#ffffff; --mvrd-text:#1a1a1a; --mvrd-br:rgba(0,0,0,.08); --mvrd-btn:rgba(0,0,0,.05); --mvrd-bth:rgba(0,0,0,.1); }
-#mv-reader-shell[data-theme="night"]  { --mvrd-bg:#060b14; --mvrd-page:#0a1020; --mvrd-text:#c8d8f0; --mvrd-br:rgba(100,150,255,.08); --mvrd-btn:rgba(100,150,255,.06); --mvrd-bth:rgba(100,150,255,.14); }
-#mv-reader-shell                      { --mvrd-bg:#0d0d1a; --mvrd-page:#1a1a2e; --mvrd-text:rgba(255,255,255,.88); --mvrd-br:rgba(255,255,255,.07); --mvrd-btn:rgba(255,255,255,.06); --mvrd-bth:rgba(255,255,255,.12); }
+/* ── ثيمات ── */
+#mv-reader-shell[data-theme="dark"]  { --rd-bg:#111; --rd-page:#1a1a1a; --rd-text:#e8e0d0; --rd-sub:rgba(255,255,255,.4); --rd-br:rgba(255,255,255,.08); --rd-btn:rgba(255,255,255,.07); --rd-bth:rgba(255,255,255,.14); --rd-accent:#e8192c; }
+#mv-reader-shell[data-theme="sepia"] { --rd-bg:#1c1208; --rd-page:#2a1e0a; --rd-text:#e8d5b0; --rd-sub:rgba(232,213,176,.45); --rd-br:rgba(232,213,176,.1); --rd-btn:rgba(232,213,176,.07); --rd-bth:rgba(232,213,176,.15); --rd-accent:#c9a96e; }
+#mv-reader-shell[data-theme="light"] { --rd-bg:#e8e8e8; --rd-page:#fff; --rd-text:#1a1a1a; --rd-sub:rgba(0,0,0,.4); --rd-br:rgba(0,0,0,.08); --rd-btn:rgba(0,0,0,.05); --rd-bth:rgba(0,0,0,.1); --rd-accent:#e8192c; }
+#mv-reader-shell[data-theme="night"] { --rd-bg:#060b14; --rd-page:#0d1520; --rd-text:#c8d8f0; --rd-sub:rgba(200,216,240,.4); --rd-br:rgba(100,150,255,.08); --rd-btn:rgba(100,150,255,.06); --rd-bth:rgba(100,150,255,.14); --rd-accent:#4d9fff; }
+#mv-reader-shell { --rd-bg:#111; --rd-page:#1a1a1a; --rd-text:#e8e0d0; --rd-sub:rgba(255,255,255,.4); --rd-br:rgba(255,255,255,.08); --rd-btn:rgba(255,255,255,.07); --rd-bth:rgba(255,255,255,.14); --rd-accent:#e8192c; }
 
-/* شريط الأدوات */
+/* ── شريط العنوان العلوي ── */
 #mv-topbar {
-  display: flex; align-items: center; justify-content: space-between; gap: .5rem;
-  padding: .6rem 1.2rem;
-  background: var(--mvrd-page);
-  border-bottom: 1px solid var(--mvrd-br);
-  flex-shrink: 0; flex-wrap: wrap; z-index: 10;
-  box-shadow: 0 2px 20px rgba(0,0,0,.3);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 1rem; height: 52px; flex-shrink: 0;
+  background: var(--rd-page);
+  border-bottom: 1px solid var(--rd-br);
+  box-shadow: 0 2px 12px rgba(0,0,0,.4);
+  gap: .5rem; z-index: 10;
 }
-.mv-tb-title { font-size: 1rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; color: var(--mvrd-text); }
-.mv-tb-title span { color: var(--red); font-size: .72rem; font-weight: 700; display: block; margin-top: 1px; }
-.mv-tb-group { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
+.mv-tb-title {
+  font-size: .95rem; font-weight: 800; color: var(--rd-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1; text-align: center;
+}
+.mv-tb-title span { display: none; }
+.mv-tb-group { display: flex; align-items: center; gap: .35rem; }
 .mv-tb-btn {
-  display: flex; align-items: center; justify-content: center; gap: .3rem;
-  padding: .42rem .8rem;
-  background: var(--mvrd-btn); border: 1px solid var(--mvrd-br); border-radius: 8px;
-  color: var(--mvrd-text); font-family: 'Tajawal'; font-size: .82rem; font-weight: 700;
-  cursor: pointer; transition: all .2s; white-space: nowrap; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px;
+  background: var(--rd-btn); border: 1px solid var(--rd-br); border-radius: 10px;
+  color: var(--rd-text); font-size: 1rem; cursor: pointer; transition: all .2s;
+  font-family: 'Tajawal';
 }
-.mv-tb-btn:hover { background: var(--mvrd-bth); }
-.mv-tb-btn.icon-only { padding: .42rem .55rem; }
+.mv-tb-btn:hover { background: var(--rd-bth); }
+.mv-tb-btn.icon-only { padding: 0; }
 .mv-page-counter {
-  display: flex; align-items: center; gap: .5rem;
-  background: var(--mvrd-btn); border: 1px solid var(--mvrd-br); border-radius: 8px;
-  padding: .3rem .7rem; font-size: .85rem; font-weight: 800; color: var(--mvrd-text);
+  display: flex; align-items: center; gap: .4rem;
+  background: var(--rd-btn); border: 1px solid var(--rd-br); border-radius: 8px;
+  padding: .3rem .6rem; font-size: .85rem; font-weight: 800; color: var(--rd-text);
 }
-.mv-page-counter input { width: 42px; background: transparent; border: none; outline: none; color: var(--red); font-family: 'Tajawal'; font-size: .9rem; font-weight: 900; text-align: center; }
-.mv-page-counter .sep { color: rgba(255,255,255,.3); }
+.mv-page-counter input { width: 38px; background: transparent; border: none; outline: none; color: var(--rd-accent); font-family: 'Tajawal'; font-size: .9rem; font-weight: 900; text-align: center; }
+.mv-page-counter .sep { color: var(--rd-sub); }
 
-/* شريط التقدم */
-#mv-progress-bar-wrap { height: 3px; background: var(--mvrd-br); flex-shrink: 0; }
-#mv-progress-bar { height: 100%; background: linear-gradient(90deg, var(--red), #f5a623); transition: width .3s ease; width: 0%; }
+/* ── شريط التقدم ── */
+#mv-progress-bar-wrap { height: 3px; background: var(--rd-br); flex-shrink: 0; }
+#mv-progress-bar { height: 100%; background: var(--rd-accent); transition: width .3s ease; width: 0%; }
 
-/* منطقة القراءة */
-#mv-reader-body { flex: 1; overflow-y: auto; overflow-x: hidden; background: var(--mvrd-bg); scroll-behavior: smooth; position: relative; }
-#mv-reader-body::-webkit-scrollbar { width: 6px; }
-#mv-reader-body::-webkit-scrollbar-thumb { background: rgba(232,25,44,.3); border-radius: 3px; }
-#mv-reader-body::-webkit-scrollbar-thumb:hover { background: rgba(232,25,44,.6); }
+/* ── منطقة القراءة الرئيسية ── */
+#mv-reader-body {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  background: var(--rd-bg); scroll-behavior: smooth; position: relative;
+}
+#mv-reader-body::-webkit-scrollbar { width: 5px; }
+#mv-reader-body::-webkit-scrollbar-thumb { background: rgba(232,25,44,.25); border-radius: 3px; }
 
-/* حاوية PDF */
-#mv-pdf-container { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; padding: 2rem 1rem; min-height: 100%; }
-.mv-pdf-page-wrap { position: relative; box-shadow: 0 8px 40px rgba(0,0,0,.6); border-radius: 4px; overflow: hidden; background: var(--mvrd-page); max-width: 100%; }
-.mv-pdf-page-wrap canvas { display: block; max-width: 100%; height: auto !important; }
-.mv-pdf-page-num { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.55); color: rgba(255,255,255,.7); font-size: .7rem; font-weight: 700; padding: 2px 10px; border-radius: 20px; font-family: 'Tajawal'; pointer-events: none; }
+/* ── PDF ── */
+#mv-pdf-container {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2rem; padding: 2rem 1rem 4rem; min-height: 100%;
+}
+.mv-pdf-page-wrap {
+  position: relative; width: 100%; max-width: 780px;
+  background: var(--rd-page);
+  box-shadow: 0 4px 30px rgba(0,0,0,.5);
+  border-radius: 6px; overflow: hidden;
+}
+.mv-pdf-page-wrap canvas { display: block; width: 100% !important; height: auto !important; }
+.mv-pdf-page-num {
+  position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,.5); color: rgba(255,255,255,.6);
+  font-size: .7rem; font-weight: 700; padding: 2px 10px; border-radius: 20px;
+  font-family: 'Tajawal'; pointer-events: none;
+}
 
-/* حاوية الصور */
+/* ── الصور (مانجا) ── */
 #mv-images-container { display: none; flex-direction: column; align-items: center; gap: 0; min-height: 100%; }
 .mv-manga-img-wrap { width: 100%; max-width: 800px; margin: 0 auto; }
-.mv-manga-img-wrap img { width: 100%; height: auto; display: block; user-select: none; -webkit-user-drag: none; }
-#mv-images-container.paged-mode { justify-content: center; align-items: center; padding: 1rem; }
-#mv-images-container.paged-mode .mv-manga-img-wrap { max-width: 600px; box-shadow: 0 8px 40px rgba(0,0,0,.6); border-radius: 4px; overflow: hidden; }
-#mv-images-container.paged-mode .mv-manga-img-wrap:not(.mv-active-page) { display: none; }
+.mv-manga-img-wrap img { width: 100%; height: auto; display: block; user-select: none; }
 
-/* حاوية رواية نصية */
-#mv-novel-container { display: none; max-width: 740px; margin: 0 auto; padding: 3rem 2rem 5rem; min-height: 100%; }
-#mv-novel-text { font-size: var(--mv-font-size, 18px); line-height: var(--mv-line-height, 2.1); color: var(--mvrd-text); text-align: right; direction: rtl; white-space: pre-wrap; word-break: break-word; font-weight: 400; }
+/* ── رواية نصية ── */
+#mv-novel-container {
+  display: none; max-width: 720px; margin: 0 auto;
+  padding: 3rem 1.5rem 6rem;
+}
+#mv-novel-text {
+  font-size: var(--mv-font-size, 18px);
+  line-height: var(--mv-line-height, 2.1);
+  color: var(--rd-text); text-align: right; direction: rtl;
+  white-space: pre-wrap; word-break: break-word; font-weight: 400;
+}
 
-/* شريط الفصول */
-#mv-chapter-nav { display: none; align-items: center; justify-content: space-between; gap: .5rem; padding: .7rem 1.2rem; background: var(--mvrd-page); border-top: 1px solid var(--mvrd-br); flex-shrink: 0; }
+/* ── شريط الأدوات السفلي (كتوباتي style) ── */
+#mv-bottom-bar {
+  display: flex; align-items: center; justify-content: space-around;
+  height: 60px; flex-shrink: 0;
+  background: var(--rd-page);
+  border-top: 1px solid var(--rd-br);
+  padding: 0 1rem;
+  box-shadow: 0 -2px 12px rgba(0,0,0,.3);
+}
+.mv-bot-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: none; border: none; color: var(--rd-sub);
+  cursor: pointer; padding: .4rem .6rem; border-radius: 10px;
+  transition: all .2s; font-family: 'Tajawal'; min-width: 44px;
+}
+.mv-bot-btn:hover, .mv-bot-btn.active { color: var(--rd-accent); }
+.mv-bot-btn svg { width: 22px; height: 22px; }
+.mv-bot-btn span { font-size: .65rem; font-weight: 700; }
+
+/* رقم الصفحة في المنتصف */
+#mv-page-display {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  color: var(--rd-text);
+}
+#mv-page-display .pg-num { font-size: 1rem; font-weight: 900; color: var(--rd-accent); line-height: 1; }
+#mv-page-display .pg-total { font-size: .65rem; color: var(--rd-sub); font-weight: 700; }
+
+/* ── فصول ── */
+#mv-chapter-nav { display: none; align-items: center; justify-content: space-between; gap: .5rem; padding: .6rem 1rem; background: var(--rd-page); border-top: 1px solid var(--rd-br); flex-shrink: 0; }
 #mv-chapter-nav.show { display: flex; }
-.mv-ch-lbl { font-size: .85rem; font-weight: 800; color: var(--mvrd-text); }
+.mv-ch-lbl { font-size: .85rem; font-weight: 800; color: var(--rd-text); }
 
-/* تنقل الصور */
-#mv-paged-nav { display: none; align-items: center; justify-content: center; gap: .8rem; padding: .6rem 1.2rem; background: var(--mvrd-page); border-top: 1px solid var(--mvrd-br); flex-shrink: 0; }
-#mv-paged-nav.show { display: flex; }
-.mv-pn-btn { padding: .45rem 1.1rem; background: var(--mvrd-btn); border: 1px solid var(--mvrd-br); border-radius: 8px; color: var(--mvrd-text); font-family: 'Tajawal'; font-size: .85rem; font-weight: 700; cursor: pointer; transition: all .2s; }
-.mv-pn-btn:hover:not(:disabled) { background: var(--red); border-color: var(--red); color: #fff; }
-.mv-pn-btn:disabled { opacity: .35; cursor: not-allowed; }
-
-/* لوحة الإعدادات */
-#mv-settings-panel { display: none; position: absolute; top: 60px; left: 1rem; background: var(--mvrd-page); border: 1px solid var(--mvrd-br); border-radius: 14px; padding: 1.2rem; min-width: 260px; z-index: 100; box-shadow: 0 12px 40px rgba(0,0,0,.5); }
+/* ── لوحة الإعدادات ── */
+#mv-settings-panel {
+  display: none; position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%);
+  background: var(--rd-page); border: 1px solid var(--rd-br); border-radius: 18px;
+  padding: 1.4rem 1.2rem; min-width: 280px; z-index: 200;
+  box-shadow: 0 -8px 40px rgba(0,0,0,.6);
+}
 #mv-settings-panel.open { display: block; }
-.mv-sp-label { font-size: .72rem; font-weight: 800; color: rgba(255,255,255,.45); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: .5rem; display: block; }
-.mv-sp-row { display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem; flex-wrap: wrap; }
-.mv-sp-chip { padding: .32rem .8rem; background: var(--mvrd-btn); border: 1px solid var(--mvrd-br); border-radius: 20px; font-size: .8rem; font-weight: 700; cursor: pointer; color: var(--mvrd-text); transition: all .2s; font-family: 'Tajawal'; }
-.mv-sp-chip.active, .mv-sp-chip:hover { background: var(--red); border-color: var(--red); color: #fff; }
-.mv-theme-chip { width: 32px; height: 32px; border-radius: 50%; border: 2.5px solid var(--mvrd-br); cursor: pointer; transition: all .2s; display: inline-flex; align-items: center; justify-content: center; font-size: .9rem; }
-.mv-theme-chip.active { border-color: var(--red); box-shadow: 0 0 8px rgba(232,25,44,.35); }
-.mv-fs-control { display: flex; align-items: center; gap: .5rem; background: var(--mvrd-btn); border: 1px solid var(--mvrd-br); border-radius: 8px; padding: .2rem .5rem; }
-.mv-fs-btn { background: none; border: none; color: var(--mvrd-text); font-size: 1rem; cursor: pointer; padding: .2rem .4rem; border-radius: 4px; }
-.mv-fs-btn:hover { background: var(--mvrd-bth); }
-#mv-fs-val { font-size: .85rem; font-weight: 800; color: var(--red); min-width: 32px; text-align: center; }
+.mv-sp-label { font-size: .7rem; font-weight: 800; color: var(--rd-sub); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: .6rem; display: block; }
+.mv-sp-row { display: flex; align-items: center; gap: .5rem; margin-bottom: 1.1rem; flex-wrap: wrap; }
+.mv-sp-chip { padding: .35rem .9rem; background: var(--rd-btn); border: 1px solid var(--rd-br); border-radius: 20px; font-size: .8rem; font-weight: 700; cursor: pointer; color: var(--rd-text); transition: all .2s; font-family: 'Tajawal'; }
+.mv-sp-chip.active, .mv-sp-chip:hover { background: var(--rd-accent); border-color: var(--rd-accent); color: #fff; }
+.mv-theme-chip { width: 34px; height: 34px; border-radius: 50%; border: 2.5px solid var(--rd-br); cursor: pointer; transition: all .2s; display: inline-flex; align-items: center; justify-content: center; font-size: .95rem; }
+.mv-theme-chip.active { border-color: var(--rd-accent); box-shadow: 0 0 10px rgba(232,25,44,.4); }
+.mv-fs-control { display: flex; align-items: center; gap: .5rem; background: var(--rd-btn); border: 1px solid var(--rd-br); border-radius: 10px; padding: .25rem .6rem; }
+.mv-fs-btn { background: none; border: none; color: var(--rd-text); font-size: 1.1rem; cursor: pointer; padding: .2rem .4rem; border-radius: 4px; line-height: 1; }
+.mv-fs-btn:hover { background: var(--rd-bth); }
+#mv-fs-val { font-size: .9rem; font-weight: 800; color: var(--rd-accent); min-width: 28px; text-align: center; }
 
-/* تحميل */
-#mv-reader-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; padding: 4rem 2rem; color: rgba(255,255,255,.4); font-size: .95rem; }
-.mv-spin-circle { width: 44px; height: 44px; border: 3px solid rgba(255,255,255,.08); border-top-color: var(--red); border-radius: 50%; animation: mv-spin .9s linear infinite; }
+/* ── تحميل ── */
+#mv-reader-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; padding: 5rem 2rem; color: var(--rd-sub); font-size: .95rem; min-height: 50vh; }
+.mv-spin-circle { width: 46px; height: 46px; border: 3px solid var(--rd-br); border-top-color: var(--rd-accent); border-radius: 50%; animation: mv-spin .85s linear infinite; }
 @keyframes mv-spin { to { transform: rotate(360deg); } }
-.mv-load-prog-wrap { width: 200px; height: 4px; background: rgba(255,255,255,.08); border-radius: 2px; overflow: hidden; }
-.mv-load-prog-fill { height: 100%; background: linear-gradient(90deg, var(--red), #f5a623); border-radius: 2px; transition: width .3s; }
+.mv-load-prog-wrap { width: 200px; height: 4px; background: var(--rd-br); border-radius: 2px; overflow: hidden; }
+.mv-load-prog-fill { height: 100%; background: var(--rd-accent); border-radius: 2px; transition: width .3s; }
 
-/* استئناف */
-#mv-resume-toast { display: none; position: fixed; bottom: 5rem; left: 50%; transform: translateX(-50%); background: var(--mvrd-page); border: 1px solid var(--red); border-radius: 12px; padding: .7rem 1.2rem; font-size: .85rem; font-weight: 700; color: var(--mvrd-text); z-index: 200; box-shadow: 0 4px 20px rgba(0,0,0,.4); cursor: pointer; gap: .6rem; align-items: center; white-space: nowrap; font-family: 'Tajawal'; }
+/* ── استئناف ── */
+#mv-resume-toast { display: none; position: absolute; top: 62px; left: 50%; transform: translateX(-50%); background: var(--rd-page); border: 1px solid var(--rd-accent); border-radius: 12px; padding: .7rem 1.2rem; font-size: .85rem; font-weight: 700; color: var(--rd-text); z-index: 200; box-shadow: 0 4px 20px rgba(0,0,0,.4); cursor: pointer; gap: .6rem; align-items: center; white-space: nowrap; font-family: 'Tajawal'; }
 #mv-resume-toast.show { display: flex; }
-#mv-resume-toast:hover { background: var(--red); color: #fff; }
+#mv-resume-toast:hover { background: var(--rd-accent); color: #fff; }
 
-/* Responsive */
-@media(max-width:600px) { #mv-topbar { padding: .5rem .8rem; gap: .4rem; } .mv-tb-title { max-width: 110px; font-size: .88rem; } #mv-pdf-container { padding: 1rem .5rem; } }
+/* ── paged nav (مخفي — نستخدم الشريط السفلي فقط) ── */
+#mv-paged-nav { display: none !important; }
+
+@media(max-width:480px) {
+  #mv-topbar { padding: 0 .7rem; }
+  .mv-tb-title { font-size: .85rem; }
+  #mv-pdf-container { padding: 1rem .4rem 4rem; }
+  #mv-novel-container { padding: 2rem 1rem 5rem; }
+}
 </style>
 
-<!-- HTML القارئ الجديد -->
+<!-- ═══════════════════════════════════════
+     قارئ MangaVerse — تصميم كتوباتي
+════════════════════════════════════════ -->
 <div id="mv-reader-shell">
-  <!-- شريط الأدوات -->
+
+  <!-- شريط العنوان العلوي -->
   <div id="mv-topbar">
+    <!-- زر الإغلاق -->
+    <div class="mv-tb-group">
+      <button class="mv-tb-btn icon-only" onclick="mvCloseReader()" title="إغلاق" style="color:var(--rd-sub)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <!-- العنوان -->
     <div class="mv-tb-title" id="mv-tb-title">
       عنوان العمل
       <span id="mv-tb-type">PDF</span>
     </div>
-    <div class="mv-tb-group" id="mv-page-controls" style="display:none">
-      <button class="mv-tb-btn" onclick="mvPrevPage()">&#8250; السابقة</button>
-      <div class="mv-page-counter">
-        <input type="number" id="mv-page-inp" value="1" min="1"
-          onchange="mvGoToPage(this.value)"
-          onkeydown="if(event.key==='Enter')mvGoToPage(this.value)">
-        <span class="sep">/</span>
-        <span id="mv-total-pages-lbl">—</span>
-      </div>
-      <button class="mv-tb-btn" onclick="mvNextPage()">&#8249; التالية</button>
-    </div>
+    <!-- أزرار يمين -->
     <div class="mv-tb-group">
-      <div class="mv-tb-group" id="mv-zoom-controls" style="display:none">
-        <button class="mv-tb-btn icon-only" onclick="mvChangeZoom(-10)">−</button>
-        <span class="mv-page-counter" style="min-width:58px;justify-content:center"><span id="mv-zoom-lbl">100%</span></span>
-        <button class="mv-tb-btn icon-only" onclick="mvChangeZoom(+10)">+</button>
-        <button class="mv-tb-btn icon-only" onclick="mvChangeZoom(0)" title="ملاءمة">⊡</button>
-      </div>
-      <button class="mv-tb-btn icon-only" onclick="mvToggleSettings()" title="إعدادات">⚙️</button>
-      <button class="mv-tb-btn icon-only" onclick="mvToggleFullscreen()" title="ملء الشاشة">⛶</button>
-      <button class="mv-tb-btn icon-only" onclick="mvCloseReader()" title="إغلاق">✕</button>
+      <button class="mv-tb-btn icon-only" onclick="mvToggleSettings()" title="إعدادات" style="color:var(--rd-sub)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </button>
+      <button class="mv-tb-btn icon-only" onclick="mvToggleFullscreen()" title="ملء الشاشة" style="color:var(--rd-sub)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
+      </button>
     </div>
   </div>
 
@@ -5742,9 +5796,9 @@ if("serviceWorker" in navigator){
   <div id="mv-settings-panel">
     <span class="mv-sp-label">الثيم</span>
     <div class="mv-sp-row">
-      <div class="mv-theme-chip active" data-theme="dark"  onclick="mvSetTheme('dark')"  style="background:#0d0d1a" title="داكن">🌙</div>
-      <div class="mv-theme-chip"        data-theme="sepia" onclick="mvSetTheme('sepia')" style="background:#3a2a14" title="سيبيا">☕</div>
-      <div class="mv-theme-chip"        data-theme="light" onclick="mvSetTheme('light')" style="background:#f5f0eb" title="فاتح">☀️</div>
+      <div class="mv-theme-chip active" data-theme="dark"  onclick="mvSetTheme('dark')"  style="background:#111" title="داكن">🌙</div>
+      <div class="mv-theme-chip"        data-theme="sepia" onclick="mvSetTheme('sepia')" style="background:#2a1e0a" title="سيبيا">☕</div>
+      <div class="mv-theme-chip"        data-theme="light" onclick="mvSetTheme('light')" style="background:#e8e8e8" title="فاتح">☀️</div>
       <div class="mv-theme-chip"        data-theme="night" onclick="mvSetTheme('night')" style="background:#060b14" title="ليلي">🌌</div>
     </div>
     <div id="mv-font-controls">
@@ -5767,7 +5821,6 @@ if("serviceWorker" in navigator){
       <span class="mv-sp-label">وضع العرض</span>
       <div class="mv-sp-row">
         <span class="mv-sp-chip active" onclick="mvSetImgMode(this,'scroll')">📜 تمرير</span>
-        <span class="mv-sp-chip"        onclick="mvSetImgMode(this,'paged')">📄 صفحة</span>
       </div>
     </div>
     <div id="mv-pdf-fit-controls" style="display:none">
@@ -5775,6 +5828,17 @@ if("serviceWorker" in navigator){
       <div class="mv-sp-row">
         <span class="mv-sp-chip active" onclick="mvSetFitMode(this,'width')">عرض الشاشة</span>
         <span class="mv-sp-chip"        onclick="mvSetFitMode(this,'page')">الصفحة كاملة</span>
+      </div>
+    </div>
+    <div id="mv-zoom-controls" style="display:none">
+      <span class="mv-sp-label">التكبير</span>
+      <div class="mv-sp-row">
+        <div class="mv-fs-control">
+          <button class="mv-fs-btn" onclick="mvChangeZoom(-10)">−</button>
+          <span id="mv-zoom-lbl" style="font-size:.85rem;font-weight:800;color:var(--rd-accent);min-width:40px;text-align:center">100%</span>
+          <button class="mv-fs-btn" onclick="mvChangeZoom(+10)">+</button>
+        </div>
+        <span class="mv-sp-chip" onclick="mvChangeZoom(0)">ملاءمة</span>
       </div>
     </div>
   </div>
@@ -5791,11 +5855,33 @@ if("serviceWorker" in navigator){
     <div id="mv-images-container"></div>
   </div>
 
-  <!-- تنقل الصور -->
-  <div id="mv-paged-nav">
-    <button class="mv-pn-btn" id="mv-pn-prev" onclick="mvImgPrev()">&#8250; السابقة</button>
-    <span id="mv-paged-lbl" style="font-size:.85rem;font-weight:800;color:rgba(255,255,255,.5);min-width:60px;text-align:center">1 / 1</span>
-    <button class="mv-pn-btn" id="mv-pn-next" onclick="mvImgNext()">&#8249; التالية</button>
+  <!-- شريط الأدوات السفلي — كتوباتي style -->
+  <div id="mv-bottom-bar">
+    <!-- اقتباس -->
+    <button class="mv-bot-btn" onclick="mvCopySelection()" title="اقتباس">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
+      <span>اقتباس</span>
+    </button>
+    <!-- الصفحة السابقة -->
+    <button class="mv-bot-btn" id="mv-bot-prev" onclick="mvPrevPage()" title="السابقة">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      <span>السابقة</span>
+    </button>
+    <!-- رقم الصفحة -->
+    <div id="mv-page-display">
+      <span class="pg-num" id="mv-page-inp-lbl">—</span>
+      <span class="pg-total">/ <span id="mv-total-pages-lbl">—</span></span>
+    </div>
+    <!-- الصفحة التالية -->
+    <button class="mv-bot-btn" id="mv-bot-next" onclick="mvNextPage()" title="التالية">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      <span>التالية</span>
+    </button>
+    <!-- وضع ليلي سريع -->
+    <button class="mv-bot-btn" onclick="mvQuickTheme()" title="الوضع الليلي" id="mv-theme-toggle-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      <span>الثيم</span>
+    </button>
   </div>
 
   <!-- تنقل الفصول -->
@@ -5803,6 +5889,13 @@ if("serviceWorker" in navigator){
     <button class="mv-tb-btn" id="mv-ch-prev-btn" onclick="mvPrevChapter()">&#8250; الفصل السابق</button>
     <span class="mv-ch-lbl" id="mv-ch-lbl">الفصل 1</span>
     <button class="mv-tb-btn" id="mv-ch-next-btn" onclick="mvNextChapter()">&#8249; الفصل التالي</button>
+  </div>
+
+  <!-- تنقل الصور (مخفي — نستخدم الشريط السفلي) -->
+  <div id="mv-paged-nav" style="display:none!important">
+    <button class="mv-pn-btn" id="mv-pn-prev" onclick="mvImgPrev()">السابقة</button>
+    <span id="mv-paged-lbl">1 / 1</span>
+    <button class="mv-pn-btn" id="mv-pn-next" onclick="mvImgNext()">التالية</button>
   </div>
 </div>
 
@@ -8982,6 +9075,7 @@ async function _mvLoadPDF(url){
     if(lp) lp.style.width='95%';
     var tpl=G('mv-total-pages-lbl'); if(tpl) tpl.textContent=MV.pdfTotalPages;
     var pi=G('mv-page-inp'); if(pi) pi.max=MV.pdfTotalPages;
+    var pil=G('mv-page-inp-lbl'); if(pil) pil.textContent=MV.pdfCurrentPage||1;
     G('mv-reader-loading').style.display='none';
     G('mv-pdf-container').style.display='flex';
     await _mvCalcPDFScale();
@@ -9090,6 +9184,7 @@ window.mvNextPage=function(){ if(MV.mode==='pdf') mvGoToPage(MV.pdfCurrentPage+1
 function _mvUpdatePageUI(n){
   MV.pdfCurrentPage=n;
   var pi=G('mv-page-inp'); if(pi) pi.value=n;
+  var pil=G('mv-page-inp-lbl'); if(pil) pil.textContent=n;
   _mvUpdateProgress(n,MV.pdfTotalPages);
 }
 
@@ -9108,6 +9203,7 @@ function _mvLoadImages(pages){
   G('mv-reader-loading').style.display='none';
   G('mv-images-container').style.display='flex';
   var tpl=G('mv-total-pages-lbl'); if(tpl) tpl.textContent=pages.length;
+  var pil=G('mv-page-inp-lbl'); if(pil) pil.textContent='1';
   var container=G('mv-images-container'); container.innerHTML='';
   pages.forEach(function(url,i){
     var wrap=document.createElement('div'); wrap.className='mv-manga-img-wrap'; wrap.id='mv-img-page-'+i;
@@ -9130,6 +9226,7 @@ function _mvGoToImgPage(idx){
     var pn=G('mv-pn-next'); if(pn) pn.disabled=idx===MV.imgPages.length-1;
   }
   var pi=G('mv-page-inp'); if(pi) pi.value=idx+1;
+  var pil=G('mv-page-inp-lbl'); if(pil) pil.textContent=idx+1;
   _mvUpdateProgress(idx+1,MV.imgPages.length);
 }
 
@@ -9259,6 +9356,24 @@ document.addEventListener('click',function(e){
   if(panel&&!panel.contains(e.target)&&!e.target.closest('[onclick*="mvToggleSettings"]')) panel.classList.remove('open');
 });
 
+// ── تبديل سريع بين ثيمين ──
+window.mvQuickTheme=function(){
+  var themes=['dark','light','sepia','night'];
+  var cur=G('mv-reader-shell').dataset.theme||'dark';
+  var next=themes[(themes.indexOf(cur)+1)%themes.length];
+  mvSetTheme(next);
+};
+// ── نسخ النص المحدد ──
+window.mvCopySelection=function(){
+  var sel=window.getSelection();
+  if(sel&&sel.toString().trim()){
+    navigator.clipboard.writeText(sel.toString()).then(function(){
+      if(typeof toast==='function') toast('✅ تم نسخ الاقتباس');
+    }).catch(function(){});
+  } else {
+    if(typeof toast==='function') toast('حدد نصاً أولاً لنسخه','w');
+  }
+};
 window.mvCloseReader=function(){
   var shell=G('mv-reader-shell'); if(shell) shell.classList.remove('open');
   var toast=G('mv-resume-toast'); if(toast) toast.classList.remove('show');
