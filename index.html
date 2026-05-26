@@ -8859,7 +8859,23 @@ window.MangaReaderOpen = function(opts){
   const titleEl=G('mv-tb-title');
   if(titleEl){ titleEl.childNodes[0].nodeValue=MV.workTitle+'\n'; }
   const shell=G('mv-reader-shell');
-  if(shell){ shell.classList.add('open'); document.body.style.overflow='hidden'; }
+  if(shell){
+    shell.classList.add('open');
+    // إصلاح التجميد على الهاتف
+    document.body.style.overflow='hidden';
+    document.body.style.position='fixed';
+    document.body.style.width='100%';
+    document.documentElement.style.overflow='hidden';
+    // تأكد أن القارئ فوق كل شيء
+    shell.style.position='fixed';
+    shell.style.top='0';
+    shell.style.left='0';
+    shell.style.right='0';
+    shell.style.bottom='0';
+    shell.style.zIndex='99999';
+    // scroll إلى الأعلى
+    window.scrollTo(0,0);
+  }
   if(MV.chapters.length>0) _mvLoadChapter(MV.chapterIdx,opts);
   else _mvStartMode(opts.mode||'pdf',opts);
 };
@@ -9244,7 +9260,11 @@ document.addEventListener('click',function(e){
 window.mvCloseReader=function(){
   var shell=G('mv-reader-shell'); if(shell) shell.classList.remove('open');
   var toast=G('mv-resume-toast'); if(toast) toast.classList.remove('show');
+  // إعادة الصفحة لطبيعتها بعد الإغلاق
   document.body.style.overflow='';
+  document.body.style.position='';
+  document.body.style.width='';
+  document.documentElement.style.overflow='';
   MV.pdfDoc=null; MV.pdfTotalPages=0; MV.pdfCurrentPage=1;
   if(MV.onClose) MV.onClose();
 };
