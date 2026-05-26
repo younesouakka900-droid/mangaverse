@@ -5583,14 +5583,20 @@ if("serviceWorker" in navigator){
 #mv-reader-shell {
   display: none;
   position: fixed;
-  inset: 0;
-  z-index: 10000;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 2147483647 !important;
   background: var(--mvrd-bg, #0d0d1a);
   flex-direction: column;
   overflow: hidden;
   font-family: 'Tajawal', sans-serif;
+  transform: none !important;
 }
-#mv-reader-shell.open { display: flex; }
+#mv-reader-shell.open { display: flex !important; }
 
 /* ثيمات */
 #mv-reader-shell[data-theme="sepia"]  { --mvrd-bg:#2c1f0e; --mvrd-page:#3a2a14; --mvrd-text:#e8d5b0; --mvrd-br:rgba(232,213,176,.1); --mvrd-btn:rgba(232,213,176,.07); --mvrd-bth:rgba(232,213,176,.15); }
@@ -8861,20 +8867,16 @@ window.MangaReaderOpen = function(opts){
   const shell=G('mv-reader-shell');
   if(shell){
     shell.classList.add('open');
-    // إصلاح التجميد على الهاتف
+    // إصلاح التجميد على الهاتف — منع scroll الصفحة خلف القارئ
+    var scrollY = window.scrollY;
     document.body.style.overflow='hidden';
     document.body.style.position='fixed';
+    document.body.style.top='-'+scrollY+'px';
+    document.body.style.left='0';
+    document.body.style.right='0';
     document.body.style.width='100%';
     document.documentElement.style.overflow='hidden';
-    // تأكد أن القارئ فوق كل شيء
-    shell.style.position='fixed';
-    shell.style.top='0';
-    shell.style.left='0';
-    shell.style.right='0';
-    shell.style.bottom='0';
-    shell.style.zIndex='99999';
-    // scroll إلى الأعلى
-    window.scrollTo(0,0);
+    document.body.dataset.scrollY = scrollY;
   }
   if(MV.chapters.length>0) _mvLoadChapter(MV.chapterIdx,opts);
   else _mvStartMode(opts.mode||'pdf',opts);
@@ -9261,10 +9263,15 @@ window.mvCloseReader=function(){
   var shell=G('mv-reader-shell'); if(shell) shell.classList.remove('open');
   var toast=G('mv-resume-toast'); if(toast) toast.classList.remove('show');
   // إعادة الصفحة لطبيعتها بعد الإغلاق
+  var scrollY = parseInt(document.body.dataset.scrollY || '0');
   document.body.style.overflow='';
   document.body.style.position='';
+  document.body.style.top='';
+  document.body.style.left='';
+  document.body.style.right='';
   document.body.style.width='';
   document.documentElement.style.overflow='';
+  window.scrollTo(0, scrollY);
   MV.pdfDoc=null; MV.pdfTotalPages=0; MV.pdfCurrentPage=1;
   if(MV.onClose) MV.onClose();
 };
