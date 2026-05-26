@@ -61,7 +61,8 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: err.message || 'فشل الرفع' });
     }
 
-    const cdnUrl = `https://cdn.jsdelivr.net/gh/${GH_OWNER}/${GH_REPO}@${GH_BRANCH}/${path}`;
+    // استخدام proxy بدل jsDelivr لتجنب مشكلة الـ cache
+    const cdnUrl = `https://mangaverse-one-lac.vercel.app/api/pdf-proxy?file=${uniqueName}`;
     return res.status(200).json({ url: cdnUrl });
 
   } catch (err) {
