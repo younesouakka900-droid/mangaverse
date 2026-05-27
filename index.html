@@ -1366,36 +1366,67 @@ let _pdfDoc = null, _pdfPage = 1, _pdfTotal = 0, _pdfSrc = "";
 let _pdfRendering = false;
 
 window.openPdfViewer = async (src, title, w) => {
-  _pdfSrc = src;
+  // ── تحويل روابط Cloudinary و GitHub لتجنب مشاكل CORS ──
+  function _fixPdfUrl(u){
+    if(!u) return u;
+    // Cloudinary raw → أضف fl_attachment:false لفتحه مباشرة في المتصفح
+    if(u.includes('res.cloudinary.com') && u.includes('/raw/upload/')){
+      // إذا لم يكن fl_attachment:false موجوداً أصلاً
+      if(!u.includes('fl_attachment')) {
+        return u.replace('/raw/upload/', '/raw/upload/fl_attachment:false/');
+      }
+      return u;
+    }
+    // GitHub raw → حوّل لـ jsDelivr CDN
+    if(u.includes('raw.githubusercontent.com')){
+      return u.replace('raw.githubusercontent.com','cdn.jsdelivr.net/gh')
+               .replace('/main/','@main/').replace('/master/','@master/');
+    }
+    return u;
+  }
+  const fixedSrc = _fixPdfUrl(src);
+  _pdfSrc = fixedSrc;
   G("pdf-viewer-title").textContent = title || "";
   G("pdf-viewer-page").style.display = "flex";
   document.body.style.overflow = "hidden";
-  G("pdf-download-btn").onclick = () => window.open(src, "_blank");
+  G("pdf-download-btn").onclick = () => window.open(fixedSrc, "_blank");
   const wrap = G("pdf-canvas-wrap");
   wrap.innerHTML = '<div style="text-align:center;padding:3rem;color:rgba(255,255,255,.5)"><span class="spin" style="font-size:2rem">⏳</span><div style="margin-top:1rem">جاري تحميل PDF...</div></div>';
   if(!window.pdfjsLib){
     await new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";s.onload=res;s.onerror=rej;document.head.appendChild(s);});
     window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
   }
-  async function _loadPdfData(url){
-    if(url.startsWith("data:")||url.startsWith("blob:")) return url;
-    try{const r=await fetch(url,{method:"GET",mode:"cors"});if(!r.ok)throw new Error();return new Uint8Array(await r.arrayBuffer());}
-    catch(e){return url;}
-  }
   try{
-    const pdfData=await _loadPdfData(src);
-    const loadingTask=window.pdfjsLib.getDocument({
-      data:pdfData instanceof Uint8Array?pdfData:undefined,
-      url:pdfData instanceof Uint8Array?undefined:pdfData,
+    // نمرر الرابط مباشرة لـ PDF.js بدون fetch لتجنب مشاكل CORS
+    const loadingTask_pre = window.pdfjsLib.getDocument({
+      url: fixedSrc,
       cMapUrl:"https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/",
       cMapPacked:true,
       standardFontDataUrl:"https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/",
+      withCredentials: false,
     });
-    _pdfDoc=await loadingTask.promise;
+    // محاولة تحميل مباشر أولاً
+    const pdfData = await loadingTask_pre.promise.then(doc => doc).catch(async ()=>{
+      // fallback: fetch ثم ArrayBuffer
+      try{
+        const r=await fetch(fixedSrc,{method:"GET",mode:"cors"});
+        if(!r.ok) throw new Error();
+        return new Uint8Array(await r.arrayBuffer());
+      }catch(e){ return null; }
+    });
+    if(!pdfData){ throw new Error("فشل التحميل"); }
+    const finalDoc = pdfData && pdfData.numPages ? pdfData :
+      await window.pdfjsLib.getDocument({
+        data: pdfData,
+        cMapUrl:"https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/",
+        cMapPacked:true,
+        standardFontDataUrl:"https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/",
+      }).promise;
+    _pdfDoc = finalDoc;
     _pdfTotal=_pdfDoc.numPages;_pdfPage=1;
     _updatePdfNav();await _renderPdfPage(_pdfPage);
   }catch(e){
-    wrap.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;gap:1.2rem;padding:2rem;text-align:center"><div style="font-size:3.5rem">📄</div><div style="font-weight:800;font-size:1.05rem;color:rgba(255,255,255,.85)">${title||"الملف"}</div><div style="font-size:.82rem;color:rgba(255,255,255,.4);max-width:280px;line-height:1.6">يمكن قراءة هذا الملف عبر تطبيق PDF على هاتفك</div><a href="${src}" target="_blank" rel="noopener" style="background:var(--red);color:#fff;padding:.9rem 2.2rem;border-radius:14px;font-family:'Tajawal';font-weight:800;font-size:1rem;text-decoration:none">📥 افتح PDF مباشرة</a></div>`;
+    wrap.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;gap:1.2rem;padding:2rem;text-align:center"><div style="font-size:3.5rem">📄</div><div style="font-weight:800;font-size:1.05rem;color:rgba(255,255,255,.85)">${title||"الملف"}</div><div style="font-size:.82rem;color:rgba(255,255,255,.4);max-width:280px;line-height:1.6">تعذّر فتح الملف تلقائياً، جرّب الضغط على الزر أدناه</div><a href="${fixedSrc}" target="_blank" rel="noopener" style="background:var(--red);color:#fff;padding:.9rem 2.2rem;border-radius:14px;font-family:'Tajawal';font-weight:800;font-size:1rem;text-decoration:none">📥 افتح PDF مباشرة</a></div>`;
   }
 };
 
