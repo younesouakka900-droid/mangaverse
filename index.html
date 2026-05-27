@@ -5555,8 +5555,8 @@ body.light-mode .stab:hover{color:var(--red);}
 </script>
 <meta name="apple-mobile-web-app-title" content="MangaVerse">
 <meta name="theme-color" content="#e8192c">
-<link rel="icon" type="image/png" href="src="YOUR_IMAGE_URL_HERE"">
-<link rel="apple-touch-icon" href="src="YOUR_IMAGE_URL_HERE"">
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/younesouakka900-droid/%D8%B9%D8%A7%D9%84%D9%85-%D8%A7%D9%84%D9%85%D8%A7%D9%86%D8%AC%D8%A7/main/og-image.jpg">
+<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/younesouakka900-droid/%D8%B9%D8%A7%D9%84%D9%85-%D8%A7%D9%84%D9%85%D8%A7%D9%86%D8%AC%D8%A7/main/og-image.jpg">
 
 <script>
 // ── تسجيل Service Worker ──
@@ -5564,7 +5564,6 @@ if("serviceWorker" in navigator){
   window.addEventListener("load", async () => {
     try{
       const reg = await navigator.serviceWorker.register("/service-worker.js", { scope:"/" });
-      console.log("[MangaVerse] SW registered:", reg.scope);
 
       // استقبال رسائل من SW (فتح عمل من الإشعار)
       navigator.serviceWorker.addEventListener("message", e => {
@@ -6405,7 +6404,7 @@ html.reader-open, body.reader-open { overflow: hidden !important; height: 100% !
             <span style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:#10b981;font-size:.6rem;font-weight:800;padding:.1rem .35rem;border-radius:20px">NO AI</span>
             <span style="font-size:.68rem;color:rgba(255,255,255,.4);line-height:1.4">كُتب ورُسم بجهد بشري خالص</span>
           </div>
-          <div id="check-human" style="position:absolute;top:.4rem;left:.4rem;width:18px;height:18px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;font-size:.7rem;display:none">✓</div>
+          <div id="check-human" style="position:absolute;top:.4rem;left:.4rem;width:18px;height:18px;border-radius:50%;background:#10b981;align-items:center;justify-content:center;font-size:.7rem;display:none">✓</div>
         </div>
         <!-- خيار 2: بمساعدة AI -->
         <div id="opt-ai" onclick="selectCreationType('ai')"
@@ -7498,7 +7497,7 @@ html.reader-open, body.reader-open { overflow: hidden !important; height: 100% !
       <div class="p-av-wrap" onclick="pickAvatar()">
         <div class="p-av-ring ring-new" id="p-av-ring">
           <div class="p-av-inner">
-            <span id="p-av-ini">YO</span>
+            <span id="p-av-ini"></span>
             <img id="p-av-img" alt="avatar">
             <div class="av-hover"><span>📷</span><p>تغيير الصورة</p></div>
           </div>
